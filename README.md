@@ -66,17 +66,17 @@ The app reads Code Engine's `PORT` environment variable and listens on `0.0.0.0`
 
 ## Mark A User As Paid
 
-Edit `data/db.json` and add or update a record in `paidEnrollments`:
+Edit `data/db.json` and add or update a record in `paidEnrollments`. Only `userId`, `courseId`, and `paid` are required:
 
 ```json
 {
   "userId": "u-demo",
   "courseId": "data-analytics",
-  "paid": true,
-  "transactionId": "YOUR-UPI-ID-OR-REFERENCE",
-  "paidAt": "2026-06-06T00:00:00.000Z"
+  "paid": true
 }
 ```
+
+You can optionally add `transactionId` and `paidAt` for your own payment records. They are not used for access checks.
 
 Refresh the course page after the update. Paid users will see the 100 protected lesson redirects.
 

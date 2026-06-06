@@ -3,14 +3,14 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Northstar Learning Academy</title>
+    <title>Up 'N' Rise Learning Academy</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
     <main class="shell">
       <section id="loginView" class="login-view">
         <div class="brand-panel">
-          <p class="eyebrow">Northstar Learning Academy</p>
+          <p class="eyebrow">Up 'N' Rise Learning Academy</p>
           <h1>Career-ready courses with guided access.</h1>
           <p class="lead">Login to view courses, choose a program, pay with QR, and unlock direct Google Drive lesson links after payment is approved.</p>
           <div class="stats-row" aria-label="Academy highlights">
@@ -23,22 +23,34 @@
           <h2>Login</h2>
           <label>
             Email
-            <input name="email" type="email" value="demo@example.com" autocomplete="email" required>
+            <input name="email" type="email" autocomplete="email" required>
           </label>
           <label>
             Password
-            <input name="password" type="password" value="demo123" autocomplete="current-password" required>
+            <input name="password" type="password" autocomplete="current-password" required>
           </label>
           <button type="submit">Sign in</button>
           <p id="loginMessage" class="message" role="status"></p>
-          <p class="hint">Demo login: demo@example.com / demo123</p>
+          <!--<p class="hint"><button type="button" id="showForgotPassword" class="text-button">Forgot password?</button></p>-->
         </form>
+
+        <!--<form id="forgotPasswordForm" class="login-card hidden">
+          <h2>Forgot password</h2>
+          <p class="hint">Enter your account email and we will email your login password.</p>
+          <label>
+            Email
+            <input name="email" type="email" autocomplete="email" required>
+          </label>
+          <button type="submit" class="primary-button">Email my password</button>
+          <p id="forgotPasswordMessage" class="message" role="status"></p>
+          <p class="hint"><button type="button" id="backToLogin" class="text-button">Back to login</button></p>
+        </form>-->
       </section>
 
       <section id="appView" class="app-view hidden">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Northstar Learning Academy</p>
+            <p class="eyebrow">Up 'N' Rise Learning Academy</p>
             <h1>Course Portal</h1>
           </div>
           <div class="account">
@@ -65,6 +77,30 @@
               <h2>Learners who used the training in real work.</h2>
             </div>
             <div id="testimonialGrid" class="testimonial-grid"></div>
+
+            <form id="testimonialForm" class="testimonial-form">
+              <h3>Share your experience</h3>
+              <p class="hint">Your testimonial is saved immediately and shown publicly only after an admin approves it.</p>
+              <label>
+                Your role or outcome
+                <input name="role" type="text" placeholder="e.g. Placed as Junior Developer" maxlength="100" required>
+              </label>
+              <label>
+                Your testimonial
+                <textarea name="quote" rows="4" placeholder="What changed for you after this course?" maxlength="500" required></textarea>
+              </label>
+              <button type="submit" class="primary-button">Submit testimonial</button>
+              <p id="testimonialMessage" class="message" role="status"></p>
+            </form>
+
+            <section id="adminTestimonials" class="admin-panel hidden" aria-label="Admin testimonial review">
+              <div class="section-heading compact">
+                <p class="eyebrow">Admin</p>
+                <h2>Review submitted testimonials</h2>
+              </div>
+              <p class="hint">Turn a testimonial on to make it visible to all logged-in learners.</p>
+              <div id="adminTestimonialList" class="admin-testimonial-list"></div>
+            </section>
           </section>
 
           <section id="contactBlock" class="contact-band"></section>

@@ -2,6 +2,7 @@ const state = {
   user: null,
   courses: [],
   testimonials: [],
+  adminTestimonials: [],
   contact: null,
   selectedCourseId: null
 };
@@ -11,6 +12,10 @@ const els = {
   appView: document.querySelector("#appView"),
   loginForm: document.querySelector("#loginForm"),
   loginMessage: document.querySelector("#loginMessage"),
+  forgotPasswordForm: document.querySelector("#forgotPasswordForm"),
+  forgotPasswordMessage: document.querySelector("#forgotPasswordMessage"),
+  showForgotPassword: document.querySelector("#showForgotPassword"),
+  backToLogin: document.querySelector("#backToLogin"),
   userName: document.querySelector("#userName"),
   logoutButton: document.querySelector("#logoutButton"),
   courseGrid: document.querySelector("#courseGrid"),
@@ -19,8 +24,20 @@ const els = {
   catalogView: document.querySelector("#catalogView"),
   courseDetailView: document.querySelector("#courseDetailView"),
   catalogTab: document.querySelector("#catalogTab"),
-  detailTab: document.querySelector("#detailTab")
+  detailTab: document.querySelector("#detailTab"),
+  testimonialForm: document.querySelector("#testimonialForm"),
+  testimonialMessage: document.querySelector("#testimonialMessage"),
+  adminTestimonials: document.querySelector("#adminTestimonials"),
+  adminTestimonialList: document.querySelector("#adminTestimonialList")
 };
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -36,15 +53,34 @@ async function api(path, options = {}) {
   return payload;
 }
 
+function showLoginForm() {
+  els.loginForm.classList.remove("hidden");
+  els.forgotPasswordForm.classList.add("hidden");
+  els.loginMessage.textContent = "";
+  els.forgotPasswordMessage.textContent = "";
+}
+
+function showForgotPasswordForm() {
+  const loginEmail = els.loginForm.querySelector('input[name="email"]').value;
+  els.loginForm.classList.add("hidden");
+  els.forgotPasswordForm.classList.remove("hidden");
+  els.forgotPasswordMessage.textContent = "";
+  if (loginEmail) {
+    els.forgotPasswordForm.querySelector('input[name="email"]').value = loginEmail;
+  }
+}
+
 function showLogin() {
   els.loginView.classList.remove("hidden");
   els.appView.classList.add("hidden");
+  showLoginForm();
 }
 
 function showApp() {
   els.loginView.classList.add("hidden");
   els.appView.classList.remove("hidden");
   els.userName.textContent = state.user.name;
+  els.adminTestimonials.classList.toggle("hidden", !state.user.isAdmin);
 }
 
 function showCatalog() {
@@ -88,17 +124,51 @@ function renderCourses() {
 }
 
 function renderTestimonials() {
-  els.testimonialGrid.innerHTML = state.testimonials
-    .map(
-      (item) => `
+  els.testimonialGrid.innerHTML = state.testimonials.length
+    ? state.testimonials
+        .map(
+          (item) => `
         <article class="testimonial-card">
-          <p>"${item.quote}"</p>
-          <strong>${item.name}</strong>
-          <span>${item.role}</span>
+          <p>"${escapeHtml(item.quote)}"</p>
+          <strong>${escapeHtml(item.name)}</strong>
+          <span>${escapeHtml(item.role)}</span>
         </article>
       `
-    )
-    .join("");
+        )
+        .join("")
+    : `<p class="hint">Approved testimonials will appear here.</p>`;
+}
+
+function renderAdminTestimonials() {
+  if (!state.user?.isAdmin) return;
+
+  els.adminTestimonialList.innerHTML = state.adminTestimonials.length
+    ? state.adminTestimonials
+        .map(
+          (item) => `
+        <article class="admin-testimonial-card" data-id="${escapeHtml(item.id)}">
+          <div class="admin-testimonial-copy">
+            <p>"${escapeHtml(item.quote)}"</p>
+            <strong>${escapeHtml(item.name)}</strong>
+            <span>${escapeHtml(item.role)}</span>
+            <span class="admin-meta">${item.published ? "Visible to learners" : "Pending approval"}</span>
+          </div>
+          <label class="publish-toggle">
+            <input type="checkbox" data-id="${escapeHtml(item.id)}" ${item.published ? "checked" : ""}>
+            Show publicly
+          </label>
+        </article>
+      `
+        )
+        .join("")
+    : `<p class="hint">No testimonials submitted yet.</p>`;
+}
+
+async function loadAdminTestimonials() {
+  if (!state.user?.isAdmin) return;
+  const payload = await api("/api/admin/testimonials");
+  state.adminTestimonials = payload.testimonials;
+  renderAdminTestimonials();
 }
 
 function renderContact() {
@@ -137,6 +207,7 @@ async function loadCatalog() {
   renderCourses();
   renderTestimonials();
   renderContact();
+  await loadAdminTestimonials();
 }
 
 function renderCourseDetail(course, videos) {
@@ -171,7 +242,7 @@ function renderCourseDetail(course, videos) {
     : `
       <section class="video-section">
         <h3>Video Lessons</h3>
-        <p class="payment-note">The 100 direct Google Drive lesson redirects appear here after payment approval.</p>
+        <p class="payment-note">The recorded lessons appear here after payment approval.</p>
       </section>
     `;
 
@@ -212,6 +283,29 @@ async function openCourse(courseId) {
   history.pushState(null, "", `/#course/${courseId}`);
 }
 
+els.showForgotPassword.addEventListener("click", showForgotPasswordForm);
+els.backToLogin.addEventListener("click", showLoginForm);
+
+els.forgotPasswordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  els.forgotPasswordMessage.textContent = "";
+  els.forgotPasswordMessage.style.color = "";
+  const formData = new FormData(els.forgotPasswordForm);
+
+  try {
+    const payload = await api("/api/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email: formData.get("email") })
+    });
+    els.forgotPasswordMessage.textContent = payload.message;
+    els.forgotPasswordMessage.style.color = "var(--green)";
+    els.forgotPasswordForm.reset();
+  } catch (error) {
+    els.forgotPasswordMessage.textContent = error.message;
+    els.forgotPasswordMessage.style.color = "var(--red)";
+  }
+});
+
 els.loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   els.loginMessage.textContent = "";
@@ -242,6 +336,48 @@ els.logoutButton.addEventListener("click", async () => {
 els.courseGrid.addEventListener("click", (event) => {
   const button = event.target.closest("[data-course]");
   if (button) openCourse(button.dataset.course);
+});
+
+els.testimonialForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  els.testimonialMessage.textContent = "";
+  const formData = new FormData(els.testimonialForm);
+
+  try {
+    const payload = await api("/api/testimonials", {
+      method: "POST",
+      body: JSON.stringify({
+        role: formData.get("role"),
+        quote: formData.get("quote")
+      })
+    });
+    els.testimonialMessage.textContent = payload.message;
+    els.testimonialMessage.style.color = "var(--green)";
+    els.testimonialForm.reset();
+    if (state.user?.isAdmin) await loadAdminTestimonials();
+  } catch (error) {
+    els.testimonialMessage.textContent = error.message;
+    els.testimonialMessage.style.color = "var(--red)";
+  }
+});
+
+els.adminTestimonialList.addEventListener("change", async (event) => {
+  const input = event.target.closest('input[type="checkbox"][data-id]');
+  if (!input) return;
+
+  const testimonialId = input.dataset.id;
+  const published = input.checked;
+
+  try {
+    await api(`/api/admin/testimonials/${testimonialId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ published })
+    });
+    await loadCatalog();
+  } catch (error) {
+    input.checked = !published;
+    alert(error.message);
+  }
 });
 
 els.catalogTab.addEventListener("click", showCatalog);

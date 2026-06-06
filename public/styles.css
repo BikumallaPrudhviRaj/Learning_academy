@@ -132,16 +132,19 @@ label {
   margin-bottom: 16px;
 }
 
-input {
+input,
+textarea {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 13px 14px;
   color: var(--ink);
   background: #ffffff;
+  resize: vertical;
 }
 
-input:focus {
+input:focus,
+textarea:focus {
   outline: 3px solid rgba(37, 99, 235, 0.18);
   border-color: var(--blue);
 }
@@ -166,6 +169,16 @@ input:focus {
   margin: 10px 0 0;
   color: var(--muted);
   font-size: 14px;
+}
+
+.text-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--blue);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 .topbar {
@@ -358,6 +371,73 @@ input:focus {
 .testimonial-card span {
   color: var(--muted);
   font-size: 14px;
+}
+
+.testimonial-form {
+  margin-top: 24px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.testimonial-form h3 {
+  margin: 0 0 8px;
+}
+
+.admin-panel {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px dashed var(--line);
+}
+
+.admin-testimonial-list {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-testimonial-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.admin-testimonial-copy p {
+  margin: 0 0 10px;
+  line-height: 1.6;
+}
+
+.admin-testimonial-copy strong {
+  display: block;
+}
+
+.admin-testimonial-copy span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.admin-meta {
+  display: block;
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+.publish-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.publish-toggle input {
+  width: auto;
 }
 
 .contact-band {

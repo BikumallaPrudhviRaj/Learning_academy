@@ -3,8 +3,11 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const { URL } = require("node:url");
+const { loadEnv } = require("./env");
+const { sendPasswordEmail } = require("./resend");
 
 const rootDir = path.join(__dirname, "..");
+loadEnv(rootDir);
 const publicDir = path.join(rootDir, "public");
 const dbPath = path.join(rootDir, "data", "db.json");
 const videosPath = path.join(rootDir, "data", "video-links.json");
@@ -16,6 +19,33 @@ function readJson(filePath) {
 
 function readDb() {
   return readJson(dbPath);
+}
+
+function writeDb(db) {
+  fs.writeFileSync(dbPath, `${JSON.stringify(db, null, 2)}\n`, "utf8");
+}
+
+function isAdmin(user) {
+  return user?.role === "admin";
+}
+
+function userForClient(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    isAdmin: isAdmin(user)
+  };
+}
+
+function publishedTestimonials(testimonials) {
+  return testimonials
+    .filter((item) => item.published === true)
+    .map((item) => ({
+      name: item.name,
+      role: item.role,
+      quote: item.quote
+    }));
 }
 
 function readVideoOverrides() {
@@ -90,8 +120,9 @@ function readBody(req) {
   });
 }
 
+// Only userId, courseId, and paid are required. transactionId and paidAt are optional metadata.
 function isPaid(db, userId, courseId) {
-  return db.paidEnrollments.some(
+  return (db.paidEnrollments || []).some(
     (item) => item.userId === userId && item.courseId === courseId && item.paid === true
   );
 }
@@ -165,7 +196,7 @@ async function handleApi(req, res, pathname) {
       "Content-Type": "application/json",
       "Set-Cookie": `session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`
     });
-    res.end(JSON.stringify({ user: { id: user.id, name: user.name, email: user.email } }));
+    res.end(JSON.stringify({ user: userForClient(user) }));
     return;
   }
 
@@ -179,6 +210,45 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  if (req.method === "POST" && pathname === "/api/forgot-password") {
+    const body = await readBody(req);
+    const email = String(body.email || "").trim().toLowerCase();
+
+    if (!email) {
+      sendJson(res, 400, { error: "Email is required." });
+      return;
+    }
+
+    const successMessage =
+      "If an account exists with that email, we sent your login password.";
+
+    try {
+      const user = db.users.find((item) => item.email.toLowerCase() === email);
+      if (user) {
+        await sendPasswordEmail({
+          to: user.email,
+          name: user.name,
+          password: user.password
+        });
+      }
+      sendJson(res, 200, { ok: true, message: successMessage });
+    } catch (error) {
+      if (error.code === "RESEND_NOT_CONFIGURED") {
+        sendJson(res, 503, { error: error.message });
+        return;
+      }
+
+      console.error("Forgot password email failed:", error.message);
+      const isDev = process.env.NODE_ENV !== "production";
+      sendJson(res, 500, {
+        error: isDev
+          ? error.message
+          : "Could not send email right now. Please try again later."
+      });
+    }
+    return;
+  }
+
   const user = getCurrentUser(req);
   if (!user) {
     sendJson(res, 401, { error: "Please login first" });
@@ -186,15 +256,99 @@ async function handleApi(req, res, pathname) {
   }
 
   if (req.method === "GET" && pathname === "/api/me") {
-    sendJson(res, 200, { user: { id: user.id, name: user.name, email: user.email } });
+    sendJson(res, 200, { user: userForClient(user) });
     return;
   }
 
   if (req.method === "GET" && pathname === "/api/courses") {
     sendJson(res, 200, {
       courses: db.courses.map((course) => courseForClient(course, isPaid(db, user.id, course.id))),
-      testimonials: db.testimonials,
+      testimonials: publishedTestimonials(db.testimonials || []),
       contact: db.contact
+    });
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/testimonials") {
+    const body = await readBody(req);
+    const role = String(body.role || "").trim();
+    const quote = String(body.quote || "").trim();
+
+    if (role.length < 2 || role.length > 100) {
+      sendJson(res, 400, { error: "Role must be between 2 and 100 characters." });
+      return;
+    }
+
+    if (quote.length < 10 || quote.length > 500) {
+      sendJson(res, 400, { error: "Testimonial must be between 10 and 500 characters." });
+      return;
+    }
+
+    const testimonial = {
+      id: `t-${crypto.randomBytes(6).toString("hex")}`,
+      userId: user.id,
+      name: user.name,
+      role,
+      quote,
+      published: false,
+      createdAt: new Date().toISOString()
+    };
+
+    db.testimonials = db.testimonials || [];
+    db.testimonials.push(testimonial);
+    writeDb(db);
+    sendJson(res, 201, {
+      ok: true,
+      message: "Thanks! Your testimonial was submitted and will appear after admin approval.",
+      testimonial
+    });
+    return;
+  }
+
+  if (isAdmin(user) && req.method === "GET" && pathname === "/api/admin/testimonials") {
+    sendJson(res, 200, {
+      testimonials: (db.testimonials || []).map((item) => ({
+        id: item.id,
+        userId: item.userId,
+        name: item.name,
+        role: item.role,
+        quote: item.quote,
+        published: item.published === true,
+        createdAt: item.createdAt
+      }))
+    });
+    return;
+  }
+
+  const adminTestimonialMatch = pathname.match(/^\/api\/admin\/testimonials\/([^/]+)$/);
+  if (isAdmin(user) && req.method === "PATCH" && adminTestimonialMatch) {
+    const testimonialId = adminTestimonialMatch[1];
+    const body = await readBody(req);
+    const testimonial = (db.testimonials || []).find((item) => item.id === testimonialId);
+
+    if (!testimonial) {
+      sendJson(res, 404, { error: "Testimonial not found" });
+      return;
+    }
+
+    if (typeof body.published !== "boolean") {
+      sendJson(res, 400, { error: "published must be true or false" });
+      return;
+    }
+
+    testimonial.published = body.published;
+    writeDb(db);
+    sendJson(res, 200, {
+      ok: true,
+      testimonial: {
+        id: testimonial.id,
+        userId: testimonial.userId,
+        name: testimonial.name,
+        role: testimonial.role,
+        quote: testimonial.quote,
+        published: testimonial.published,
+        createdAt: testimonial.createdAt
+      }
     });
     return;
   }
