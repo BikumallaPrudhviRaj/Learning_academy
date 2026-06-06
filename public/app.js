@@ -1,3 +1,5 @@
+console.log("App.js loaded successfully");
+
 const state = {
   user: null,
   courses: [],
@@ -7,29 +9,34 @@ const state = {
   selectedCourseId: null
 };
 
-const els = {
-  loginView: document.querySelector("#loginView"),
-  appView: document.querySelector("#appView"),
-  loginForm: document.querySelector("#loginForm"),
-  loginMessage: document.querySelector("#loginMessage"),
-  forgotPasswordForm: document.querySelector("#forgotPasswordForm"),
-  forgotPasswordMessage: document.querySelector("#forgotPasswordMessage"),
-  showForgotPassword: document.querySelector("#showForgotPassword"),
-  backToLogin: document.querySelector("#backToLogin"),
-  userName: document.querySelector("#userName"),
-  logoutButton: document.querySelector("#logoutButton"),
-  courseGrid: document.querySelector("#courseGrid"),
-  testimonialGrid: document.querySelector("#testimonialGrid"),
-  contactBlock: document.querySelector("#contactBlock"),
-  catalogView: document.querySelector("#catalogView"),
-  courseDetailView: document.querySelector("#courseDetailView"),
-  catalogTab: document.querySelector("#catalogTab"),
-  detailTab: document.querySelector("#detailTab"),
-  testimonialForm: document.querySelector("#testimonialForm"),
-  testimonialMessage: document.querySelector("#testimonialMessage"),
-  adminTestimonials: document.querySelector("#adminTestimonials"),
-  adminTestimonialList: document.querySelector("#adminTestimonialList")
-};
+let els = {};
+
+function initElements() {
+  els = {
+    loginView: document.querySelector("#loginView"),
+    appView: document.querySelector("#appView"),
+    loginForm: document.querySelector("#loginForm"),
+    loginMessage: document.querySelector("#loginMessage"),
+    forgotPasswordForm: document.querySelector("#forgotPasswordForm"),
+    forgotPasswordMessage: document.querySelector("#forgotPasswordMessage"),
+    showForgotPassword: document.querySelector("#showForgotPassword"),
+    backToLogin: document.querySelector("#backToLogin"),
+    userName: document.querySelector("#userName"),
+    logoutButton: document.querySelector("#logoutButton"),
+    courseGrid: document.querySelector("#courseGrid"),
+    testimonialGrid: document.querySelector("#testimonialGrid"),
+    contactBlock: document.querySelector("#contactBlock"),
+    catalogView: document.querySelector("#catalogView"),
+    courseDetailView: document.querySelector("#courseDetailView"),
+    catalogTab: document.querySelector("#catalogTab"),
+    detailTab: document.querySelector("#detailTab"),
+    testimonialForm: document.querySelector("#testimonialForm"),
+    testimonialMessage: document.querySelector("#testimonialMessage"),
+    adminTestimonials: document.querySelector("#adminTestimonials"),
+    adminTestimonialList: document.querySelector("#adminTestimonialList")
+  };
+  console.log("Elements initialized", els);
+}
 
 function escapeHtml(value) {
   return String(value)
@@ -283,124 +290,9 @@ async function openCourse(courseId) {
   history.pushState(null, "", `/#course/${courseId}`);
 }
 
-if (els.showForgotPassword) {
-  els.showForgotPassword.addEventListener("click", showForgotPasswordForm);
-}
-if (els.backToLogin) {
-  els.backToLogin.addEventListener("click", showLoginForm);
-}
-
-if (els.forgotPasswordForm) {
-  els.forgotPasswordForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    els.forgotPasswordMessage.textContent = "";
-    els.forgotPasswordMessage.style.color = "";
-    const formData = new FormData(els.forgotPasswordForm);
-
-    try {
-      const payload = await api("/api/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({ email: formData.get("email") })
-      });
-      els.forgotPasswordMessage.textContent = payload.message;
-      els.forgotPasswordMessage.style.color = "var(--green)";
-      els.forgotPasswordForm.reset();
-    } catch (error) {
-      els.forgotPasswordMessage.textContent = error.message;
-      els.forgotPasswordMessage.style.color = "var(--red)";
-    }
-  });
-}
-
-els.loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  els.loginMessage.textContent = "";
-  const formData = new FormData(els.loginForm);
-
-  try {
-    const payload = await api("/api/login", {
-      method: "POST",
-      body: JSON.stringify({
-        email: formData.get("email"),
-        password: formData.get("password")
-      })
-    });
-    state.user = payload.user;
-    await loadCatalog();
-    showApp();
-  } catch (error) {
-    els.loginMessage.textContent = error.message;
-  }
-});
-
-els.logoutButton.addEventListener("click", async () => {
-  await api("/api/logout", { method: "POST" });
-  state.user = null;
-  showLogin();
-});
-
-els.courseGrid.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-course]");
-  if (button) openCourse(button.dataset.course);
-});
-
-els.testimonialForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  els.testimonialMessage.textContent = "";
-  const formData = new FormData(els.testimonialForm);
-
-  try {
-    const payload = await api("/api/testimonials", {
-      method: "POST",
-      body: JSON.stringify({
-        role: formData.get("role"),
-        quote: formData.get("quote")
-      })
-    });
-    els.testimonialMessage.textContent = payload.message;
-    els.testimonialMessage.style.color = "var(--green)";
-    els.testimonialForm.reset();
-    if (state.user?.isAdmin) await loadAdminTestimonials();
-  } catch (error) {
-    els.testimonialMessage.textContent = error.message;
-    els.testimonialMessage.style.color = "var(--red)";
-  }
-});
-
-els.adminTestimonialList.addEventListener("change", async (event) => {
-  const input = event.target.closest('input[type="checkbox"][data-id]');
-  if (!input) return;
-
-  const testimonialId = input.dataset.id;
-  const published = input.checked;
-
-  try {
-    await api(`/api/admin/testimonials/${testimonialId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ published })
-    });
-    await loadCatalog();
-  } catch (error) {
-    input.checked = !published;
-    alert(error.message);
-  }
-});
-
-els.catalogTab.addEventListener("click", showCatalog);
-els.detailTab.addEventListener("click", () => {
-  if (state.selectedCourseId) openCourse(state.selectedCourseId);
-});
-
-window.addEventListener("popstate", () => {
-  const courseId = location.hash.replace("#course/", "");
-  if (courseId) {
-    openCourse(courseId);
-  } else {
-    showCatalog();
-  }
-});
 
 async function boot() {
+  console.log("Boot function called");
   try {
     const payload = await api("/api/me");
     state.user = payload.user;
@@ -408,9 +300,148 @@ async function boot() {
     showApp();
     const courseId = location.hash.replace("#course/", "");
     if (courseId) await openCourse(courseId);
-  } catch {
+  } catch (error) {
+    console.log("Boot failed, showing login:", error);
     showLogin();
   }
 }
 
-boot();
+function init() {
+  console.log("Initializing app");
+  initElements();
+  
+  if (!els.loginForm) {
+    console.error("Login form not found!");
+    return;
+  }
+  
+  // Setup event listeners
+  if (els.showForgotPassword) {
+    els.showForgotPassword.addEventListener("click", showForgotPasswordForm);
+  }
+  if (els.backToLogin) {
+    els.backToLogin.addEventListener("click", showLoginForm);
+  }
+
+  if (els.forgotPasswordForm) {
+    els.forgotPasswordForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      els.forgotPasswordMessage.textContent = "";
+      els.forgotPasswordMessage.style.color = "";
+      const formData = new FormData(els.forgotPasswordForm);
+
+      try {
+        const payload = await api("/api/forgot-password", {
+          method: "POST",
+          body: JSON.stringify({ email: formData.get("email") })
+        });
+        els.forgotPasswordMessage.textContent = payload.message;
+        els.forgotPasswordMessage.style.color = "var(--green)";
+        els.forgotPasswordForm.reset();
+      } catch (error) {
+        els.forgotPasswordMessage.textContent = error.message;
+        els.forgotPasswordMessage.style.color = "var(--red)";
+      }
+    });
+  }
+
+  els.loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    console.log("Login form submitted");
+    els.loginMessage.textContent = "";
+    const formData = new FormData(els.loginForm);
+
+    try {
+      const payload = await api("/api/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: formData.get("email"),
+          password: formData.get("password")
+        })
+      });
+      console.log("Login successful", payload);
+      state.user = payload.user;
+      await loadCatalog();
+      showApp();
+    } catch (error) {
+      console.error("Login failed:", error);
+      els.loginMessage.textContent = error.message;
+    }
+  });
+
+  els.logoutButton.addEventListener("click", async () => {
+    await api("/api/logout", { method: "POST" });
+    state.user = null;
+    showLogin();
+  });
+
+  els.courseGrid.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-course]");
+    if (button) openCourse(button.dataset.course);
+  });
+
+  els.testimonialForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    els.testimonialMessage.textContent = "";
+    const formData = new FormData(els.testimonialForm);
+
+    try {
+      const payload = await api("/api/testimonials", {
+        method: "POST",
+        body: JSON.stringify({
+          role: formData.get("role"),
+          quote: formData.get("quote")
+        })
+      });
+      els.testimonialMessage.textContent = payload.message;
+      els.testimonialMessage.style.color = "var(--green)";
+      els.testimonialForm.reset();
+      if (state.user?.isAdmin) await loadAdminTestimonials();
+    } catch (error) {
+      els.testimonialMessage.textContent = error.message;
+      els.testimonialMessage.style.color = "var(--red)";
+    }
+  });
+
+  els.adminTestimonialList.addEventListener("change", async (event) => {
+    const input = event.target.closest('input[type="checkbox"][data-id]');
+    if (!input) return;
+
+    const testimonialId = input.dataset.id;
+    const published = input.checked;
+
+    try {
+      await api(`/api/admin/testimonials/${testimonialId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ published })
+      });
+      await loadCatalog();
+    } catch (error) {
+      input.checked = !published;
+      alert(error.message);
+    }
+  });
+
+  els.catalogTab.addEventListener("click", showCatalog);
+  els.detailTab.addEventListener("click", () => {
+    if (state.selectedCourseId) openCourse(state.selectedCourseId);
+  });
+
+  window.addEventListener("popstate", () => {
+    const courseId = location.hash.replace("#course/", "");
+    if (courseId) {
+      openCourse(courseId);
+    } else {
+      showCatalog();
+    }
+  });
+
+  boot();
+}
+
+// Wait for DOM to be ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
