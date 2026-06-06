@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Northstar Learning Academy</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section id="loginView" class="login-view">
+        <div class="brand-panel">
+          <p class="eyebrow">Northstar Learning Academy</p>
+          <h1>Career-ready courses with guided access.</h1>
+          <p class="lead">Login to view courses, choose a program, pay with QR, and unlock direct Google Drive lesson links after payment is approved.</p>
+          <div class="stats-row" aria-label="Academy highlights">
+            <span><strong>Recorded</strong> videos per course</span>
+            <span><strong>1:1</strong> review support</span>
+          </div>
+        </div>
+
+        <form id="loginForm" class="login-card">
+          <h2>Login</h2>
+          <label>
+            Email
+            <input name="email" type="email" value="demo@example.com" autocomplete="email" required>
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" value="demo123" autocomplete="current-password" required>
+          </label>
+          <button type="submit">Sign in</button>
+          <p id="loginMessage" class="message" role="status"></p>
+          <p class="hint">Demo login: demo@example.com / demo123</p>
+        </form>
+      </section>
+
+      <section id="appView" class="app-view hidden">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Northstar Learning Academy</p>
+            <h1>Course Portal</h1>
+          </div>
+          <div class="account">
+            <span id="userName"></span>
+            <button id="logoutButton" class="ghost-button" type="button">Logout</button>
+          </div>
+        </header>
+
+        <nav class="tabs" aria-label="Portal navigation">
+          <button id="catalogTab" class="tab-button active" type="button">Courses</button>
+          <button id="detailTab" class="tab-button" type="button" disabled>Course Details</button>
+        </nav>
+
+        <section id="catalogView">
+          <div class="section-heading">
+            <p class="eyebrow">Explore Programs</p>
+            <h2>Choose the track that matches your next move.</h2>
+          </div>
+          <div id="courseGrid" class="course-grid"></div>
+
+          <section class="info-band">
+            <div class="section-heading compact">
+              <p class="eyebrow">Testimonials</p>
+              <h2>Learners who used the training in real work.</h2>
+            </div>
+            <div id="testimonialGrid" class="testimonial-grid"></div>
+          </section>
+
+          <section id="contactBlock" class="contact-band"></section>
+        </section>
+
+        <section id="courseDetailView" class="hidden"></section>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

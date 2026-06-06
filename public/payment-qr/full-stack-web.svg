@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" role="img" aria-label="Full Stack Web Development payment QR">
+  <rect width="320" height="320" fill="#fff"/>
+  <path fill="#111827" d="M24 24h84v84H24zM132 24h24v24h-24zM180 24h24v24h-24zM216 24h84v84h-84zM48 48v36h36V48zm240 0h-36v36h36zM132 60h48v24h-48zM24 132h24v24H24zM72 132h24v24H72zM120 132h48v24h-48zM192 132h24v24h-24zM240 132h60v24h-60zM24 168h60v24H24zM108 168h24v24h-24zM156 168h84v24h-84zM276 168h24v24h-24zM24 216h84v84H24zM132 216h24v24h-24zM180 216h24v24h-24zM228 216h72v24h-72zM48 252v36h36v-36zm108-12h24v36h-24zM204 252h24v48h-24zM252 252h48v24h-48zM132 288h48v24h-48zM240 288h24v24h-24z"/>
+  <text x="160" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#2563eb">WEB</text>
+</svg>

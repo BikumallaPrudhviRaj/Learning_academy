@@ -1,0 +1,12 @@
+{
+  "name": "learning-academy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Database-backed ed-tech course portal with QR payment gating and paid lesson redirects.",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "HOST=127.0.0.1 PORT=3000 node src/server.js",
+    "check": "node --check src/server.js"
+  },
+  "dependencies": {}
+}

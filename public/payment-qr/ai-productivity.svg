@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" role="img" aria-label="AI Productivity payment QR">
+  <rect width="320" height="320" fill="#fff"/>
+  <path fill="#111827" d="M24 24h84v84H24zM144 24h24v24h-24zM192 24h24v24h-24zM216 24h84v84h-84zM48 48v36h36V48zm240 0h-36v36h36zM120 60h24v24h-24zM168 60h36v24h-36zM24 132h24v24H24zM60 132h84v24H60zM168 132h24v24h-24zM216 132h60v24h-60zM24 168h72v24H24zM132 168h36v24h-36zM192 168h108v24H192zM24 216h84v84H24zM132 216h24v24h-24zM180 216h72v24h-72zM276 216h24v24h-24zM48 252v36h36v-36zm84 0h48v24h-48zM204 252h24v48h-24zM252 252h48v24h-48zM132 288h24v24h-24zM168 288h72v24h-72z"/>
+  <text x="160" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#7c3aed">AI</text>
+</svg>

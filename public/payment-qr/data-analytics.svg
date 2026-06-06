@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" role="img" aria-label="Data Analytics payment QR">
+  <rect width="320" height="320" fill="#fff"/>
+  <path fill="#111827" d="M24 24h84v84H24zM132 24h36v24h-36zM204 24h12v24h-12zM216 24h84v84h-84zM48 48v36h36V48zm240 0h-36v36h36zM132 72h72v24h-72zM24 132h48v24H24zM96 132h24v24H96zM144 132h36v24h-36zM216 132h84v24h-84zM48 168h36v24H48zM120 168h96v24h-96zM252 168h24v24h-24zM24 216h84v84H24zM132 216h48v24h-48zM216 216h24v24h-24zM264 216h36v24h-36zM48 252v36h36v-36zm84 0h24v48h-24zM180 252h60v24h-60zM264 252h24v48h-24zM168 288h24v24h-24zM216 288h36v24h-36z"/>
+  <text x="160" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#0f766e">DATA</text>
+</svg>

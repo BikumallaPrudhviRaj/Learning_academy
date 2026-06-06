@@ -1,0 +1,122 @@
+{
+  "users": [
+    {
+      "id": "u-prudhvi",
+      "name": "Prudhvi",
+      "email": "prudhvi@example.com",
+      "password": "learn123"
+    },
+    {
+      "id": "u-demo",
+      "name": "Demo Learner",
+      "email": "demo@example.com",
+      "password": "demo123"
+    }
+  ],
+  "courses": [
+    {
+      "id": "full-stack-web",
+      "title": "Full Stack Web Development",
+      "level": "Beginner to Advanced",
+      "duration": "16 weeks",
+      "originalPrice": 19999,
+      "price": 14999,
+      "accent": "#2563eb",
+      "summary": "Build production-ready web apps with HTML, CSS, JavaScript, APIs, authentication, and deployment.",
+      "why": "This course is for learners who want a practical path into modern web development. Every module is tied to a portfolio-ready project, so students finish with proof of skill instead of only notes.",
+      "eligible": [
+        "College students preparing for internships",
+        "Working professionals switching into software roles",
+        "Founders who want to prototype their own product",
+        "Anyone comfortable using a computer and learning by building"
+      ],
+      "outcomes": [
+        "Responsive web interfaces",
+        "API-driven applications",
+        "Login and role-based access",
+        "Deployment workflow and portfolio review"
+      ],
+      "qrImage": "/payment-qr/full-stack-web.svg"
+    },
+    {
+      "id": "data-analytics",
+      "title": "Data Analytics With Python",
+      "level": "Beginner Friendly",
+      "duration": "12 weeks",
+      "originalPrice": 16999,
+      "price": 12999,
+      "accent": "#0f766e",
+      "summary": "Learn Excel, SQL, Python, dashboards, and business storytelling through real analysis projects.",
+      "why": "Analytics is useful across business, product, finance, marketing, and operations. This course focuses on practical problem solving, so learners can turn messy data into decisions.",
+      "eligible": [
+        "Students from any degree background",
+        "Business professionals who work with reports",
+        "Freshers applying for analyst roles",
+        "Anyone interested in data-backed decision making"
+      ],
+      "outcomes": [
+        "SQL queries and data cleaning",
+        "Python analysis notebooks",
+        "Dashboard design",
+        "Case-study presentation skills"
+      ],
+      "qrImage": "/payment-qr/data-analytics.svg"
+    },
+    {
+      "id": "ai-productivity",
+      "title": "AI Productivity And Automation",
+      "level": "Practical",
+      "duration": "8 weeks",
+      "originalPrice": 12999,
+      "price": 9999,
+      "accent": "#7c3aed",
+      "summary": "Use AI tools, prompt systems, no-code automation, and lightweight scripts to save hours every week.",
+      "why": "This course helps learners use AI responsibly in daily work. It is built around repeatable systems for research, writing, operations, customer support, and personal productivity.",
+      "eligible": [
+        "Small business owners",
+        "Operations and support teams",
+        "Creators and marketers",
+        "Students who want better study workflows"
+      ],
+      "outcomes": [
+        "Prompt libraries for recurring tasks",
+        "Automation workflows",
+        "AI-assisted research systems",
+        "Quality and safety review habits"
+      ],
+      "qrImage": "/payment-qr/ai-productivity.svg"
+    }
+  ],
+  "paidEnrollments": [
+    {
+      "userId": "u-prudhvi",
+      "courseId": "full-stack-web",
+      "paid": true,
+      "transactionId": "SEED-PAID-001",
+      "paidAt": "2026-06-05T00:00:00.000Z"
+    }
+  ],
+  "testimonials": [
+    {
+      "name": "Ananya R.",
+      "role": "Placed as Junior Developer",
+      "quote": "The projects made interviews easier because I could explain exactly what I had built."
+    },
+    {
+      "name": "Karthik M.",
+      "role": "Business Analyst",
+      "quote": "The data course helped me move from manual reporting to dashboards my team actually uses."
+    },
+    {
+      "name": "Neha S.",
+      "role": "Founder",
+      "quote": "I used the automation lessons to reduce repetitive admin work in my business every week."
+    }
+  ],
+  "contact": {
+    "academy": "Northstar Learning Academy",
+    "address": "42 Knowledge Park Road, Bengaluru, Karnataka 560001",
+    "mobile": "+91 98765 43210",
+    "email": "hello@northstarlearning.example"
+  }
+}
