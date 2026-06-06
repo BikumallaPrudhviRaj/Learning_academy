@@ -283,28 +283,34 @@ async function openCourse(courseId) {
   history.pushState(null, "", `/#course/${courseId}`);
 }
 
-els.showForgotPassword.addEventListener("click", showForgotPasswordForm);
-els.backToLogin.addEventListener("click", showLoginForm);
+if (els.showForgotPassword) {
+  els.showForgotPassword.addEventListener("click", showForgotPasswordForm);
+}
+if (els.backToLogin) {
+  els.backToLogin.addEventListener("click", showLoginForm);
+}
 
-els.forgotPasswordForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  els.forgotPasswordMessage.textContent = "";
-  els.forgotPasswordMessage.style.color = "";
-  const formData = new FormData(els.forgotPasswordForm);
+if (els.forgotPasswordForm) {
+  els.forgotPasswordForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    els.forgotPasswordMessage.textContent = "";
+    els.forgotPasswordMessage.style.color = "";
+    const formData = new FormData(els.forgotPasswordForm);
 
-  try {
-    const payload = await api("/api/forgot-password", {
-      method: "POST",
-      body: JSON.stringify({ email: formData.get("email") })
-    });
-    els.forgotPasswordMessage.textContent = payload.message;
-    els.forgotPasswordMessage.style.color = "var(--green)";
-    els.forgotPasswordForm.reset();
-  } catch (error) {
-    els.forgotPasswordMessage.textContent = error.message;
-    els.forgotPasswordMessage.style.color = "var(--red)";
-  }
-});
+    try {
+      const payload = await api("/api/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email: formData.get("email") })
+      });
+      els.forgotPasswordMessage.textContent = payload.message;
+      els.forgotPasswordMessage.style.color = "var(--green)";
+      els.forgotPasswordForm.reset();
+    } catch (error) {
+      els.forgotPasswordMessage.textContent = error.message;
+      els.forgotPasswordMessage.style.color = "var(--red)";
+    }
+  });
+}
 
 els.loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
