@@ -1,5 +1,10 @@
 const fs = require("fs");
 const path = require("path");
+
+// Load environment variables
+const rootDir = path.join(__dirname, "..");
+require("../src/env").loadEnv(rootDir);
+
 const { connect, close } = require("../src/db");
 
 async function seedDatabase() {
