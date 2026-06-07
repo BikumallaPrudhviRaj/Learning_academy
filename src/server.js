@@ -10,7 +10,6 @@ const { getDb } = require("./db");
 const rootDir = path.join(__dirname, "..");
 loadEnv(rootDir);
 const publicDir = path.join(rootDir, "public");
-const videosPath = path.join(rootDir, "data", "video-links.json");
 const sessions = new Map();
 
 function readJson(filePath) {
@@ -40,32 +39,19 @@ function publishedTestimonials(testimonials) {
     }));
 }
 
-function readVideoOverrides() {
-  try {
-    return readJson(videosPath);
-  } catch {
-    return {};
-  }
-}
-
-function buildVideoList(courseId) {
-  const overrides = readVideoOverrides()[courseId];
-  if (Array.isArray(overrides) && overrides.length) {
-    return overrides.slice(0, 100).map((item, index) => ({
-      id: item.id || `lesson-${String(index + 1).padStart(3, "0")}`,
-      title: item.title || `Lesson ${index + 1}`,
+async function buildVideoList(courseId) {
+  const course = await db.collection("courses").findOne({ id: courseId });
+  
+  if (course && Array.isArray(course.videos) && course.videos.length > 0) {
+    return course.videos.map((item, index) => ({
+      id: item.id || `video-${String(index + 1).padStart(3, "0")}`,
+      title: item.title || `Video ${index + 1}`,
       url: item.url
     }));
   }
 
-  return Array.from({ length: 100 }, (_, index) => {
-    const lesson = String(index + 1).padStart(3, "0");
-    return {
-      id: `lesson-${lesson}`,
-      title: `Lesson ${index + 1}`,
-      url: `https://drive.google.com/file/d/${courseId}-${lesson}/view`
-    };
-  });
+  // Fallback: return empty array if no videos configured
+  return [];
 }
 
 function getCookie(req, name) {
@@ -448,15 +434,14 @@ async function handleApi(req, res, pathname) {
     }
 
     const paid = await isPaid(user.id, courseId);
+    const videos = paid ? await buildVideoList(courseId) : [];
     sendJson(res, 200, {
       course: courseForClient(course, paid),
-      videos: paid
-        ? buildVideoList(courseId).map((video) => ({
-            id: video.id,
-            title: video.title,
-            redirectUrl: `/watch/${courseId}/${video.id}`
-          }))
-        : []
+      videos: videos.map((video) => ({
+        id: video.id,
+        title: video.title,
+        redirectUrl: `/watch/${courseId}/${video.id}`
+      }))
     });
     return;
   }
@@ -482,7 +467,8 @@ async function handleWatch(req, res, pathname) {
     return true;
   }
 
-  const video = buildVideoList(courseId).find((item) => item.id === videoId);
+  const videos = await buildVideoList(courseId);
+  const video = videos.find((item) => item.id === videoId);
   sendRedirect(res, video ? video.url : `/#course/${courseId}`);
   return true;
 }

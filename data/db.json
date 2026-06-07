@@ -44,7 +44,24 @@
         "Job Support will be provided to the students",
         "Help in resume review and mock interviews"
       ],
-      "qrImage": "/payment-qr/full-stack-web.svg"
+      "qrImage": "/payment-qr/full-stack-web.svg",
+      "videos": [
+        {
+          "id": "video-001",
+          "title": "Introduction to Oracle Fusion HCM",
+          "url": "https://drive.google.com/file/d/YOUR_FILE_ID_HERE/view"
+        },
+        {
+          "id": "video-002",
+          "title": "Module 1: Core HR Basics",
+          "url": "https://drive.google.com/file/d/YOUR_FILE_ID_HERE/view"
+        },
+        {
+          "id": "video-003",
+          "title": "Module 2: Workforce Management",
+          "url": "https://drive.google.com/file/d/YOUR_FILE_ID_HERE/view"
+        }
+      ]
     }
   ],
   "paidEnrollments": [
