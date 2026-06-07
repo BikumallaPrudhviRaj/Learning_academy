@@ -79,6 +79,7 @@ function showLoginForm() {
   els.signupForm.classList.add("hidden");
   els.loginMessage.textContent = "";
   els.signupMessage.textContent = "";
+  els.loginForm.reset();
 }
 
 function showSignupForm() {
@@ -86,6 +87,7 @@ function showSignupForm() {
   els.signupForm.classList.remove("hidden");
   els.loginMessage.textContent = "";
   els.signupMessage.textContent = "";
+  els.signupForm.reset();
 }
 
 function escapeHtml(value) {
@@ -130,6 +132,8 @@ function showForgotPasswordForm() {
 function showLogin() {
   els.loginView.classList.remove("hidden");
   els.appView.classList.add("hidden");
+  els.loginForm.reset();
+  els.signupForm.reset();
   showLoginForm();
 }
 
