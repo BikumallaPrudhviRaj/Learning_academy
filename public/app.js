@@ -1,4 +1,4 @@
-console.log("App.js loaded successfully - v2");
+console.log("App.js loaded successfully - v3-testimonial-fix");
 
 const state = {
   user: null,
