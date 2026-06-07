@@ -203,7 +203,6 @@ async function loadCatalog() {
   renderCourses();
   renderTestimonials();
   renderContact();
-  await loadAdminTestimonials();
 }
 
 function renderCourseDetail(course, videos) {
@@ -421,7 +420,6 @@ function init() {
       els.testimonialMessage.textContent = payload.message;
       els.testimonialMessage.style.color = "var(--green)";
       els.testimonialForm.reset();
-      if (state.user?.isAdmin) await loadAdminTestimonials();
     } catch (error) {
       els.testimonialMessage.textContent = error.message;
       els.testimonialMessage.style.color = "var(--red)";
