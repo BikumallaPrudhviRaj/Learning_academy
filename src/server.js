@@ -5,24 +5,16 @@ const path = require("node:path");
 const { URL } = require("node:url");
 const { loadEnv } = require("./env");
 const { sendPasswordEmail } = require("./resend");
+const { getDb } = require("./db");
 
 const rootDir = path.join(__dirname, "..");
 loadEnv(rootDir);
 const publicDir = path.join(rootDir, "public");
-const dbPath = path.join(rootDir, "data", "db.json");
 const videosPath = path.join(rootDir, "data", "video-links.json");
 const sessions = new Map();
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
-
-function readDb() {
-  return readJson(dbPath);
-}
-
-function writeDb(db) {
-  fs.writeFileSync(dbPath, `${JSON.stringify(db, null, 2)}\n`, "utf8");
 }
 
 function isAdmin(user) {
@@ -82,11 +74,13 @@ function getCookie(req, name) {
   return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : "";
 }
 
-function getCurrentUser(req) {
+async function getCurrentUser(req) {
   const token = getCookie(req, "session");
   const userId = sessions.get(token);
   if (!userId) return null;
-  return readDb().users.find((user) => user.id === userId) || null;
+  
+  const db = await getDb();
+  return await db.collection("users").findOne({ id: userId });
 }
 
 function sendJson(res, status, payload) {
@@ -121,10 +115,14 @@ function readBody(req) {
 }
 
 // Only userId, courseId, and paid are required. transactionId and paidAt are optional metadata.
-function isPaid(db, userId, courseId) {
-  return (db.paidEnrollments || []).some(
-    (item) => item.userId === userId && item.courseId === courseId && item.paid === true
-  );
+async function isPaid(userId, courseId) {
+  const db = await getDb();
+  const enrollment = await db.collection("paidEnrollments").findOne({
+    userId,
+    courseId,
+    paid: true
+  });
+  return !!enrollment;
 }
 
 function formatPrice(amount) {
@@ -175,17 +173,15 @@ function serveStatic(req, res, pathname) {
 }
 
 async function handleApi(req, res, pathname) {
-  const db = readDb();
+  const db = await getDb();
 
   if (req.method === "POST" && pathname === "/api/login") {
     const credentials = await readBody(req);
-    const user = db.users.find(
-      (item) =>
-        item.email.toLowerCase() === String(credentials.email || "").toLowerCase() &&
-        item.password === credentials.password
-    );
+    const user = await db.collection("users").findOne({
+      email: { $regex: new RegExp(`^${String(credentials.email || "").trim()}$`, "i") }
+    });
 
-    if (!user) {
+    if (!user || user.password !== credentials.password) {
       sendJson(res, 401, { error: "Invalid email or password" });
       return;
     }
@@ -223,7 +219,9 @@ async function handleApi(req, res, pathname) {
       "If an account exists with that email, we sent your login password.";
 
     try {
-      const user = db.users.find((item) => item.email.toLowerCase() === email);
+      const user = await db.collection("users").findOne({
+        email: { $regex: new RegExp(`^${email}$`, "i") }
+      });
       if (user) {
         await sendPasswordEmail({
           to: user.email,
@@ -249,7 +247,7 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
-  const user = getCurrentUser(req);
+  const user = await getCurrentUser(req);
   if (!user) {
     sendJson(res, 401, { error: "Please login first" });
     return;
@@ -261,10 +259,24 @@ async function handleApi(req, res, pathname) {
   }
 
   if (req.method === "GET" && pathname === "/api/courses") {
+    const courses = await db.collection("courses").find({}).toArray();
+    const coursesWithPaid = await Promise.all(
+      courses.map(async (course) => {
+        const paid = await isPaid(user.id, course.id);
+        return courseForClient(course, paid);
+      })
+    );
+    
+    const testimonials = await db.collection("testimonials")
+      .find({ published: true })
+      .toArray();
+    
+    const contact = await db.collection("contact").findOne({});
+    
     sendJson(res, 200, {
-      courses: db.courses.map((course) => courseForClient(course, isPaid(db, user.id, course.id))),
-      testimonials: publishedTestimonials(db.testimonials || []),
-      contact: db.contact
+      courses: coursesWithPaid,
+      testimonials: publishedTestimonials(testimonials),
+      contact
     });
     return;
   }
@@ -294,9 +306,7 @@ async function handleApi(req, res, pathname) {
       createdAt: new Date().toISOString()
     };
 
-    db.testimonials = db.testimonials || [];
-    db.testimonials.push(testimonial);
-    writeDb(db);
+    await db.collection("testimonials").insertOne(testimonial);
     sendJson(res, 201, {
       ok: true,
       message: "Thanks! Your testimonial was submitted and will appear after admin approval.",
@@ -306,8 +316,9 @@ async function handleApi(req, res, pathname) {
   }
 
   if (isAdmin(user) && req.method === "GET" && pathname === "/api/admin/testimonials") {
+    const testimonials = await db.collection("testimonials").find({}).toArray();
     sendJson(res, 200, {
-      testimonials: (db.testimonials || []).map((item) => ({
+      testimonials: testimonials.map((item) => ({
         id: item.id,
         userId: item.userId,
         name: item.name,
@@ -324,20 +335,24 @@ async function handleApi(req, res, pathname) {
   if (isAdmin(user) && req.method === "PATCH" && adminTestimonialMatch) {
     const testimonialId = adminTestimonialMatch[1];
     const body = await readBody(req);
-    const testimonial = (db.testimonials || []).find((item) => item.id === testimonialId);
-
-    if (!testimonial) {
-      sendJson(res, 404, { error: "Testimonial not found" });
-      return;
-    }
 
     if (typeof body.published !== "boolean") {
       sendJson(res, 400, { error: "published must be true or false" });
       return;
     }
 
-    testimonial.published = body.published;
-    writeDb(db);
+    const result = await db.collection("testimonials").findOneAndUpdate(
+      { id: testimonialId },
+      { $set: { published: body.published } },
+      { returnDocument: "after" }
+    );
+
+    if (!result.value) {
+      sendJson(res, 404, { error: "Testimonial not found" });
+      return;
+    }
+
+    const testimonial = result.value;
     sendJson(res, 200, {
       ok: true,
       testimonial: {
@@ -356,13 +371,14 @@ async function handleApi(req, res, pathname) {
   const courseMatch = pathname.match(/^\/api\/courses\/([^/]+)$/);
   if (req.method === "GET" && courseMatch) {
     const courseId = courseMatch[1];
-    const course = db.courses.find((item) => item.id === courseId);
+    const course = await db.collection("courses").findOne({ id: courseId });
+    
     if (!course) {
       sendJson(res, 404, { error: "Course not found" });
       return;
     }
 
-    const paid = isPaid(db, user.id, courseId);
+    const paid = await isPaid(user.id, courseId);
     sendJson(res, 200, {
       course: courseForClient(course, paid),
       videos: paid
@@ -379,19 +395,20 @@ async function handleApi(req, res, pathname) {
   sendJson(res, 404, { error: "API route not found" });
 }
 
-function handleWatch(req, res, pathname) {
+async function handleWatch(req, res, pathname) {
   const match = pathname.match(/^\/watch\/([^/]+)\/([^/]+)$/);
   if (!match) return false;
 
-  const user = getCurrentUser(req);
+  const user = await getCurrentUser(req);
   if (!user) {
     sendRedirect(res, "/#login");
     return true;
   }
 
   const [, courseId, videoId] = match;
-  const db = readDb();
-  if (!isPaid(db, user.id, courseId)) {
+  const paid = await isPaid(user.id, courseId);
+  
+  if (!paid) {
     sendRedirect(res, `/#course/${courseId}`);
     return true;
   }
@@ -415,7 +432,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (handleWatch(req, res, url.pathname)) return;
+    if (await handleWatch(req, res, url.pathname)) return;
     serveStatic(req, res, url.pathname);
   } catch (error) {
     sendJson(res, 500, { error: error.message });
@@ -424,9 +441,19 @@ const server = http.createServer(async (req, res) => {
 
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || "0.0.0.0";
-server.listen(port, host, () => {
-  console.log(`Ed-tech portal running at http://${host}:${port}`);
-});
+
+// Connect to MongoDB before starting server
+const { connect } = require("./db");
+connect()
+  .then(() => {
+    server.listen(port, host, () => {
+      console.log(`Ed-tech portal running at http://${host}:${port}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Failed to connect to MongoDB:", error.message);
+    process.exit(1);
+  });
 
 process.on("SIGTERM", () => {
   server.close(() => process.exit(0));
