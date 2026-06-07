@@ -520,18 +520,21 @@ const server = http.createServer(async (req, res) => {
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || "0.0.0.0";
 
-// Connect to MongoDB before starting server
-const { connect } = require("./db");
-connect()
-  .then(() => {
-    server.listen(port, host, () => {
-      console.log(`Ed-tech portal running at http://${host}:${port}`);
+// Start server immediately, MongoDB will connect on first request
+server.listen(port, host, () => {
+  console.log(`Ed-tech portal running at http://${host}:${port}`);
+  
+  // Try to connect to MongoDB in background
+  const { connect } = require("./db");
+  connect()
+    .then(() => {
+      console.log("MongoDB connection established");
+    })
+    .catch((error) => {
+      console.error("MongoDB connection failed:", error.message);
+      console.error("Server will retry connection on first database request");
     });
-  })
-  .catch((error) => {
-    console.error("Failed to connect to MongoDB:", error.message);
-    process.exit(1);
-  });
+});
 
 process.on("SIGTERM", () => {
   server.close(() => process.exit(0));
