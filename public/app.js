@@ -144,7 +144,7 @@ function renderCourses() {
             ${course.paid ? '<span class="paid-badge">Paid access</span>' : ""}
           </div>
           <div class="card-actions">
-            <button type="button" data-course="${course.id}">Choose course</button>
+            <button type="button" data-course="${course.id}">${course.paid ? 'View course' : 'Choose course'}</button>
           </div>
         </article>
       `

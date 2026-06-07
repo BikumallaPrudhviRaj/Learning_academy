@@ -416,22 +416,21 @@ async function handleApi(req, res, pathname) {
       { returnDocument: "after" }
     );
 
-    if (!result.value) {
+    if (!result) {
       sendJson(res, 404, { error: "Testimonial not found" });
       return;
     }
 
-    const testimonial = result.value;
     sendJson(res, 200, {
       ok: true,
       testimonial: {
-        id: testimonial.id,
-        userId: testimonial.userId,
-        name: testimonial.name,
-        role: testimonial.role,
-        quote: testimonial.quote,
-        published: testimonial.published,
-        createdAt: testimonial.createdAt
+        id: result.id,
+        userId: result.userId,
+        name: result.name,
+        role: result.role,
+        quote: result.quote,
+        published: result.published,
+        createdAt: result.createdAt
       }
     });
     return;
