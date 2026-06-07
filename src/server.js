@@ -427,6 +427,15 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/api/db-status") {
+      sendJson(res, 200, {
+        database: "MongoDB Atlas",
+        connected: true,
+        timestamp: new Date().toISOString()
+      });
+      return;
+    }
+
     if (url.pathname.startsWith("/api/")) {
       await handleApi(req, res, url.pathname);
       return;

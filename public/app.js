@@ -17,6 +17,7 @@ function initElements() {
     appView: document.querySelector("#appView"),
     loginForm: document.querySelector("#loginForm"),
     loginMessage: document.querySelector("#loginMessage"),
+    dbStatus: document.querySelector("#dbStatus"),
     forgotPasswordForm: document.querySelector("#forgotPasswordForm"),
     forgotPasswordMessage: document.querySelector("#forgotPasswordMessage"),
     showForgotPassword: document.querySelector("#showForgotPassword"),
@@ -36,6 +37,22 @@ function initElements() {
     adminTestimonialList: document.querySelector("#adminTestimonialList")
   };
   console.log("Elements initialized", els);
+}
+
+async function loadDbStatus() {
+  try {
+    const response = await fetch("/api/db-status");
+    const data = await response.json();
+    if (els.dbStatus) {
+      els.dbStatus.textContent = `✓ Connected to ${data.database}`;
+      els.dbStatus.style.color = "#0f62fe";
+    }
+  } catch (error) {
+    if (els.dbStatus) {
+      els.dbStatus.textContent = "⚠ Database connection status unknown";
+      els.dbStatus.style.color = "#da1e28";
+    }
+  }
 }
 
 function escapeHtml(value) {
@@ -315,6 +332,9 @@ function init() {
     return;
   }
   
+  // Load database status indicator
+  loadDbStatus();
+  
   // Setup event listeners
   if (els.showForgotPassword) {
     els.showForgotPassword.addEventListener("click", showForgotPasswordForm);
@@ -349,6 +369,7 @@ function init() {
     event.preventDefault();
     console.log("Login form submitted");
     els.loginMessage.textContent = "";
+    els.loginMessage.style.color = "";
     const formData = new FormData(els.loginForm);
 
     try {
@@ -366,6 +387,7 @@ function init() {
     } catch (error) {
       console.error("Login failed:", error);
       els.loginMessage.textContent = error.message;
+      els.loginMessage.style.color = "var(--red)";
     }
   });
 
