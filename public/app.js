@@ -137,11 +137,12 @@ function renderCourses() {
           <p>${course.summary}</p>
           <div class="meta-row">
             <span>${course.duration}</span>
-            <span class="price-block">
-              ${course.hasDiscount ? `<s class="original-price">${course.originalPriceLabel}</s>` : ""}
-              <strong class="final-price">${course.priceLabel}</strong>
-            </span>
-            ${course.paid ? '<span class="paid-badge">Paid access</span>' : ""}
+            ${!course.paid ? `
+              <span class="price-block">
+                ${course.hasDiscount ? `<s class="original-price">${course.originalPriceLabel}</s>` : ""}
+                <strong class="final-price">${course.priceLabel}</strong>
+              </span>
+            ` : '<span class="paid-badge">Paid access</span>'}
           </div>
           <div class="card-actions">
             <button type="button" data-course="${course.id}">${course.paid ? 'View course' : 'Choose course'}</button>
