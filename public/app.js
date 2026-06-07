@@ -21,8 +21,6 @@ function initElements() {
     signupMessage: document.querySelector("#signupMessage"),
     showSignup: document.querySelector("#showSignup"),
     showLogin: document.querySelector("#showLogin"),
-    dbStatus: document.querySelector("#dbStatus"),
-    dbStatusSignup: document.querySelector("#dbStatusSignup"),
     forgotPasswordForm: document.querySelector("#forgotPasswordForm"),
     forgotPasswordMessage: document.querySelector("#forgotPasswordMessage"),
     showForgotPassword: document.querySelector("#showForgotPassword"),
@@ -42,36 +40,6 @@ function initElements() {
     adminTestimonialList: document.querySelector("#adminTestimonialList")
   };
   console.log("Elements initialized", els);
-}
-
-async function loadDbStatus() {
-  try {
-    const response = await fetch("/api/db-status");
-    const data = await response.json();
-    const statusText = `✓ Connected to ${data.database}`;
-    const statusColor = "#0f62fe";
-    
-    if (els.dbStatus) {
-      els.dbStatus.textContent = statusText;
-      els.dbStatus.style.color = statusColor;
-    }
-    if (els.dbStatusSignup) {
-      els.dbStatusSignup.textContent = statusText;
-      els.dbStatusSignup.style.color = statusColor;
-    }
-  } catch (error) {
-    const errorText = "⚠ Database connection status unknown";
-    const errorColor = "#da1e28";
-    
-    if (els.dbStatus) {
-      els.dbStatus.textContent = errorText;
-      els.dbStatus.style.color = errorColor;
-    }
-    if (els.dbStatusSignup) {
-      els.dbStatusSignup.textContent = errorText;
-      els.dbStatusSignup.style.color = errorColor;
-    }
-  }
 }
 
 function showLoginForm() {
@@ -368,9 +336,6 @@ function init() {
     console.error("Login form not found!");
     return;
   }
-  
-  // Load database status indicator
-  loadDbStatus();
   
   // Setup event listeners for form toggling
   if (els.showSignup) {

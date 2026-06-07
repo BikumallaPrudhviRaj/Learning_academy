@@ -21,10 +21,9 @@
 
         <form id="loginForm" class="login-card">
           <h2>Login</h2>
-          <p id="dbStatus" style="font-size: 0.75rem; color: #666; margin-bottom: 1rem;">Loading database status...</p>
           <label>
             Email
-            <input name="email" type="email" autocomplete="email" required>
+            <input name="email" type="email" autocomplete="email" required title="Please enter a valid email address">
           </label>
           <label>
             Password
@@ -37,22 +36,21 @@
 
         <form id="signupForm" class="login-card hidden">
           <h2>Create Account</h2>
-          <p id="dbStatusSignup" style="font-size: 0.75rem; color: #666; margin-bottom: 1rem;">Loading database status...</p>
           <label>
             Full Name
-            <input name="name" type="text" autocomplete="name" required minlength="2">
+            <input name="name" type="text" autocomplete="name" required minlength="2" title="Name must be at least 2 characters">
           </label>
           <label>
             Email
-            <input name="email" type="email" autocomplete="email" required>
+            <input name="email" type="email" autocomplete="email" required title="Please enter a valid email address">
           </label>
           <label>
             Mobile Number
-            <input name="mobile" type="tel" autocomplete="tel" required pattern="[0-9]{10}" placeholder="10-digit mobile number">
+            <input name="mobile" type="tel" autocomplete="tel" required pattern="[0-9]{10}" placeholder="10-digit mobile number" title="Please enter a 10-digit mobile number">
           </label>
           <label>
             Password
-            <input name="password" type="password" autocomplete="new-password" required minlength="6">
+            <input name="password" type="password" autocomplete="new-password" required minlength="6" title="Password must be at least 6 characters">
           </label>
           <button type="submit">Create Account</button>
           <p id="signupMessage" class="message" role="status"></p>
