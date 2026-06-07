@@ -443,6 +443,7 @@ function init() {
         body: JSON.stringify({
           name: formData.get("name"),
           email: formData.get("email"),
+          mobile: formData.get("mobile"),
           password: formData.get("password")
         })
       });

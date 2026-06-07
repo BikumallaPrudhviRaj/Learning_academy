@@ -179,6 +179,7 @@ async function handleApi(req, res, pathname) {
     const body = await readBody(req);
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
+    const mobile = String(body.mobile || "").trim();
     const password = String(body.password || "").trim();
 
     // Validation
@@ -189,6 +190,11 @@ async function handleApi(req, res, pathname) {
 
     if (!email || !email.includes("@")) {
       sendJson(res, 400, { error: "Valid email is required" });
+      return;
+    }
+
+    if (!mobile || !/^[0-9]{10}$/.test(mobile)) {
+      sendJson(res, 400, { error: "Valid 10-digit mobile number is required" });
       return;
     }
 
@@ -207,11 +213,19 @@ async function handleApi(req, res, pathname) {
       return;
     }
 
+    // Check if mobile number already exists
+    const existingMobile = await db.collection("users").findOne({ mobile });
+    if (existingMobile) {
+      sendJson(res, 409, { error: "An account with this mobile number already exists" });
+      return;
+    }
+
     // Create new user
     const newUser = {
       id: `u-${crypto.randomBytes(6).toString("hex")}`,
       name,
       email,
+      mobile,
       password,
       role: "student",
       createdAt: new Date().toISOString()
