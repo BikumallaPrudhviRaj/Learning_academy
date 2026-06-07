@@ -40,6 +40,7 @@ function publishedTestimonials(testimonials) {
 }
 
 async function buildVideoList(courseId) {
+  const db = await getDb();
   const course = await db.collection("courses").findOne({ id: courseId });
   
   if (course && Array.isArray(course.videos) && course.videos.length > 0) {
