@@ -175,6 +175,61 @@ function serveStatic(req, res, pathname) {
 async function handleApi(req, res, pathname) {
   const db = await getDb();
 
+  if (req.method === "POST" && pathname === "/api/register") {
+    const body = await readBody(req);
+    const name = String(body.name || "").trim();
+    const email = String(body.email || "").trim().toLowerCase();
+    const password = String(body.password || "").trim();
+
+    // Validation
+    if (!name || name.length < 2) {
+      sendJson(res, 400, { error: "Name must be at least 2 characters" });
+      return;
+    }
+
+    if (!email || !email.includes("@")) {
+      sendJson(res, 400, { error: "Valid email is required" });
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      sendJson(res, 400, { error: "Password must be at least 6 characters" });
+      return;
+    }
+
+    // Check if user already exists
+    const existingUser = await db.collection("users").findOne({
+      email: { $regex: new RegExp(`^${email}$`, "i") }
+    });
+
+    if (existingUser) {
+      sendJson(res, 409, { error: "An account with this email already exists" });
+      return;
+    }
+
+    // Create new user
+    const newUser = {
+      id: `u-${crypto.randomBytes(6).toString("hex")}`,
+      name,
+      email,
+      password,
+      role: "student",
+      createdAt: new Date().toISOString()
+    };
+
+    await db.collection("users").insertOne(newUser);
+
+    // Auto-login after registration
+    const token = crypto.randomBytes(24).toString("hex");
+    sessions.set(token, newUser.id);
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Set-Cookie": `session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`
+    });
+    res.end(JSON.stringify({ user: userForClient(newUser) }));
+    return;
+  }
+
   if (req.method === "POST" && pathname === "/api/login") {
     const credentials = await readBody(req);
     const user = await db.collection("users").findOne({

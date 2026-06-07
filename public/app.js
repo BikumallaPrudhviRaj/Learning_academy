@@ -17,7 +17,12 @@ function initElements() {
     appView: document.querySelector("#appView"),
     loginForm: document.querySelector("#loginForm"),
     loginMessage: document.querySelector("#loginMessage"),
+    signupForm: document.querySelector("#signupForm"),
+    signupMessage: document.querySelector("#signupMessage"),
+    showSignup: document.querySelector("#showSignup"),
+    showLogin: document.querySelector("#showLogin"),
     dbStatus: document.querySelector("#dbStatus"),
+    dbStatusSignup: document.querySelector("#dbStatusSignup"),
     forgotPasswordForm: document.querySelector("#forgotPasswordForm"),
     forgotPasswordMessage: document.querySelector("#forgotPasswordMessage"),
     showForgotPassword: document.querySelector("#showForgotPassword"),
@@ -43,16 +48,44 @@ async function loadDbStatus() {
   try {
     const response = await fetch("/api/db-status");
     const data = await response.json();
+    const statusText = `✓ Connected to ${data.database}`;
+    const statusColor = "#0f62fe";
+    
     if (els.dbStatus) {
-      els.dbStatus.textContent = `✓ Connected to ${data.database}`;
-      els.dbStatus.style.color = "#0f62fe";
+      els.dbStatus.textContent = statusText;
+      els.dbStatus.style.color = statusColor;
+    }
+    if (els.dbStatusSignup) {
+      els.dbStatusSignup.textContent = statusText;
+      els.dbStatusSignup.style.color = statusColor;
     }
   } catch (error) {
+    const errorText = "⚠ Database connection status unknown";
+    const errorColor = "#da1e28";
+    
     if (els.dbStatus) {
-      els.dbStatus.textContent = "⚠ Database connection status unknown";
-      els.dbStatus.style.color = "#da1e28";
+      els.dbStatus.textContent = errorText;
+      els.dbStatus.style.color = errorColor;
+    }
+    if (els.dbStatusSignup) {
+      els.dbStatusSignup.textContent = errorText;
+      els.dbStatusSignup.style.color = errorColor;
     }
   }
+}
+
+function showLoginForm() {
+  els.loginForm.classList.remove("hidden");
+  els.signupForm.classList.add("hidden");
+  els.loginMessage.textContent = "";
+  els.signupMessage.textContent = "";
+}
+
+function showSignupForm() {
+  els.loginForm.classList.add("hidden");
+  els.signupForm.classList.remove("hidden");
+  els.loginMessage.textContent = "";
+  els.signupMessage.textContent = "";
 }
 
 function escapeHtml(value) {
@@ -335,7 +368,13 @@ function init() {
   // Load database status indicator
   loadDbStatus();
   
-  // Setup event listeners
+  // Setup event listeners for form toggling
+  if (els.showSignup) {
+    els.showSignup.addEventListener("click", showSignupForm);
+  }
+  if (els.showLogin) {
+    els.showLogin.addEventListener("click", showLoginForm);
+  }
   if (els.showForgotPassword) {
     els.showForgotPassword.addEventListener("click", showForgotPasswordForm);
   }
@@ -388,6 +427,33 @@ function init() {
       console.error("Login failed:", error);
       els.loginMessage.textContent = error.message;
       els.loginMessage.style.color = "var(--red)";
+    }
+  });
+
+  els.signupForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    console.log("Signup form submitted");
+    els.signupMessage.textContent = "";
+    els.signupMessage.style.color = "";
+    const formData = new FormData(els.signupForm);
+
+    try {
+      const payload = await api("/api/register", {
+        method: "POST",
+        body: JSON.stringify({
+          name: formData.get("name"),
+          email: formData.get("email"),
+          password: formData.get("password")
+        })
+      });
+      console.log("Registration successful", payload);
+      state.user = payload.user;
+      await loadCatalog();
+      showApp();
+    } catch (error) {
+      console.error("Registration failed:", error);
+      els.signupMessage.textContent = error.message;
+      els.signupMessage.style.color = "var(--red)";
     }
   });
 
