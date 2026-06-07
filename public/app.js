@@ -442,6 +442,39 @@ function init() {
     }
   });
 
+  // Password toggle functionality
+  document.querySelectorAll(".toggle-password").forEach((button) => {
+    button.addEventListener("click", () => {
+      const passwordField = button.closest(".password-field");
+      const input = passwordField.querySelector("input");
+      const isPassword = input.type === "password";
+      
+      input.type = isPassword ? "text" : "password";
+      button.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+      
+      // Toggle eye icon (add slash for hidden state)
+      const svg = button.querySelector("svg");
+      if (isPassword) {
+        // Add slash line to indicate "hide"
+        if (!svg.querySelector(".eye-slash")) {
+          const slash = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          slash.setAttribute("class", "eye-slash");
+          slash.setAttribute("x1", "1");
+          slash.setAttribute("y1", "1");
+          slash.setAttribute("x2", "23");
+          slash.setAttribute("y2", "23");
+          slash.setAttribute("stroke", "currentColor");
+          slash.setAttribute("stroke-width", "2");
+          svg.appendChild(slash);
+        }
+      } else {
+        // Remove slash line
+        const slash = svg.querySelector(".eye-slash");
+        if (slash) slash.remove();
+      }
+    });
+  });
+
   boot();
 }
 

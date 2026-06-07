@@ -27,7 +27,15 @@
           </label>
           <label>
             Password
-            <input name="password" type="password" autocomplete="current-password" required>
+            <div class="password-field">
+              <input name="password" type="password" autocomplete="current-password" required>
+              <button type="button" class="toggle-password" aria-label="Show password">
+                <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
           </label>
           <button type="submit">Sign in</button>
           <p id="loginMessage" class="message" role="status"></p>
@@ -50,7 +58,15 @@
           </label>
           <label>
             Password
-            <input name="password" type="password" autocomplete="new-password" required minlength="6" title="Password must be at least 6 characters">
+            <div class="password-field">
+              <input name="password" type="password" autocomplete="new-password" required minlength="6" title="Password must be at least 6 characters">
+              <button type="button" class="toggle-password" aria-label="Show password">
+                <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
           </label>
           <button type="submit">Create Account</button>
           <p id="signupMessage" class="message" role="status"></p>
