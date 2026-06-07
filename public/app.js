@@ -4,7 +4,6 @@ const state = {
   user: null,
   courses: [],
   testimonials: [],
-  adminTestimonials: [],
   contact: null,
   selectedCourseId: null
 };
@@ -35,9 +34,7 @@ function initElements() {
     catalogTab: document.querySelector("#catalogTab"),
     detailTab: document.querySelector("#detailTab"),
     testimonialForm: document.querySelector("#testimonialForm"),
-    testimonialMessage: document.querySelector("#testimonialMessage"),
-    adminTestimonials: document.querySelector("#adminTestimonials"),
-    adminTestimonialList: document.querySelector("#adminTestimonialList")
+    testimonialMessage: document.querySelector("#testimonialMessage")
   };
   console.log("Elements initialized", els);
 }
@@ -109,7 +106,6 @@ function showApp() {
   els.loginView.classList.add("hidden");
   els.appView.classList.remove("hidden");
   els.userName.textContent = state.user.name;
-  els.adminTestimonials.classList.toggle("hidden", !state.user.isAdmin);
 }
 
 function showCatalog() {
@@ -169,37 +165,7 @@ function renderTestimonials() {
     : `<p class="hint">Approved testimonials will appear here.</p>`;
 }
 
-function renderAdminTestimonials() {
-  if (!state.user?.isAdmin) return;
-
-  els.adminTestimonialList.innerHTML = state.adminTestimonials.length
-    ? state.adminTestimonials
-        .map(
-          (item) => `
-        <article class="admin-testimonial-card" data-id="${escapeHtml(item.id)}">
-          <div class="admin-testimonial-copy">
-            <p>"${escapeHtml(item.quote)}"</p>
-            <strong>${escapeHtml(item.name)}</strong>
-            <span>${escapeHtml(item.role)}</span>
-            <span class="admin-meta">${item.published ? "Visible to learners" : "Pending approval"}</span>
-          </div>
-          <label class="publish-toggle">
-            <input type="checkbox" data-id="${escapeHtml(item.id)}" ${item.published ? "checked" : ""}>
-            Show publicly
-          </label>
-        </article>
-      `
-        )
-        .join("")
-    : `<p class="hint">No testimonials submitted yet.</p>`;
-}
-
-async function loadAdminTestimonials() {
-  if (!state.user?.isAdmin) return;
-  const payload = await api("/api/admin/testimonials");
-  state.adminTestimonials = payload.testimonials;
-  renderAdminTestimonials();
-}
+// Admin testimonial management removed - manage directly in MongoDB Atlas
 
 function renderContact() {
   const contact = state.contact;
@@ -462,24 +428,7 @@ function init() {
     }
   });
 
-  els.adminTestimonialList.addEventListener("change", async (event) => {
-    const input = event.target.closest('input[type="checkbox"][data-id]');
-    if (!input) return;
-
-    const testimonialId = input.dataset.id;
-    const published = input.checked;
-
-    try {
-      await api(`/api/admin/testimonials/${testimonialId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ published })
-      });
-      await loadCatalog();
-    } catch (error) {
-      input.checked = !published;
-      alert(error.message);
-    }
-  });
+  // Admin testimonial toggle removed - manage in MongoDB Atlas
 
   els.catalogTab.addEventListener("click", showCatalog);
   els.detailTab.addEventListener("click", () => {
