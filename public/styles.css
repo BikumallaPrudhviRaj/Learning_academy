@@ -562,6 +562,61 @@ textarea:focus {
   padding: 22px;
 }
 
+/* Chapter-based video organization */
+.chapters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chapter-block {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.chapter-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #f9fbff;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.chapter-header:hover {
+  background: #e8f2ff;
+}
+
+.chapter-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+  text-align: left;
+}
+
+.chapter-arrow {
+  font-size: 14px;
+  color: var(--blue);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.chapter-videos {
+  padding: 12px;
+  background: #ffffff;
+}
+
+.chapter-videos.hidden {
+  display: none;
+}
+
 .video-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

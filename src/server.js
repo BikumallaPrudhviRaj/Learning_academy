@@ -39,40 +39,49 @@ function publishedTestimonials(testimonials) {
     }));
 }
 
-async function buildVideoList(courseId) {
+async function buildChapterList(courseId) {
   const db = await getDb();
   const course = await db.collection("courses").findOne({ id: courseId });
   
   // Support new chapter-based structure
   if (course && Array.isArray(course.chapters) && course.chapters.length > 0) {
-    const videos = [];
-    course.chapters.forEach((chapter, chapterIndex) => {
-      if (Array.isArray(chapter.videos)) {
-        chapter.videos.forEach((video, videoIndex) => {
-          videos.push({
-            id: video.id || `ch${chapterIndex + 1}-video-${String(videoIndex + 1).padStart(2, "0")}`,
-            title: `${chapter.title} - ${video.title || `Video ${videoIndex + 1}`}`,
-            url: video.url,
-            chapterId: chapter.id,
-            chapterTitle: chapter.title
-          });
-        });
-      }
-    });
-    return videos;
+    return course.chapters.map((chapter) => ({
+      id: chapter.id,
+      title: chapter.title,
+      videos: Array.isArray(chapter.videos)
+        ? chapter.videos.map((video) => ({
+            id: video.id,
+            title: video.title,
+            url: video.url
+          }))
+        : []
+    }));
   }
   
   // Fallback: support old flat videos array structure
   if (course && Array.isArray(course.videos) && course.videos.length > 0) {
-    return course.videos.map((item, index) => ({
-      id: item.id || `video-${String(index + 1).padStart(3, "0")}`,
-      title: item.title || `Video ${index + 1}`,
-      url: item.url
-    }));
+    return [{
+      id: "default-chapter",
+      title: "Course Videos",
+      videos: course.videos.map((item) => ({
+        id: item.id,
+        title: item.title,
+        url: item.url
+      }))
+    }];
   }
 
-  // Fallback: return empty array if no videos configured
+  // Fallback: return empty array if no chapters configured
   return [];
+}
+
+async function findVideoUrl(courseId, videoId) {
+  const chapters = await buildChapterList(courseId);
+  for (const chapter of chapters) {
+    const video = chapter.videos.find(v => v.id === videoId);
+    if (video) return video.url;
+  }
+  return null;
 }
 
 function getCookie(req, name) {
@@ -455,13 +464,17 @@ async function handleApi(req, res, pathname) {
     }
 
     const paid = await isPaid(user.id, courseId);
-    const videos = paid ? await buildVideoList(courseId) : [];
+    const chapters = paid ? await buildChapterList(courseId) : [];
     sendJson(res, 200, {
       course: courseForClient(course, paid),
-      videos: videos.map((video) => ({
-        id: video.id,
-        title: video.title,
-        redirectUrl: `/watch/${courseId}/${video.id}`
+      chapters: chapters.map((chapter) => ({
+        id: chapter.id,
+        title: chapter.title,
+        videos: chapter.videos.map((video) => ({
+          id: video.id,
+          title: video.title,
+          redirectUrl: `/watch/${courseId}/${video.id}`
+        }))
       }))
     });
     return;
@@ -488,9 +501,8 @@ async function handleWatch(req, res, pathname) {
     return true;
   }
 
-  const videos = await buildVideoList(courseId);
-  const video = videos.find((item) => item.id === videoId);
-  sendRedirect(res, video ? video.url : `/#course/${courseId}`);
+  const videoUrl = await findVideoUrl(courseId, videoId);
+  sendRedirect(res, videoUrl || `/#course/${courseId}`);
   return true;
 }
 

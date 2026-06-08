@@ -189,7 +189,7 @@ async function loadCatalog() {
   renderContact();
 }
 
-function renderCourseDetail(course, videos) {
+function renderCourseDetail(course, chapters) {
   const paymentContent = course.paid
     ? `
       <h3>Access unlocked</h3>
@@ -205,13 +205,27 @@ function renderCourseDetail(course, videos) {
     ? `
       <section class="video-section">
         <h3>Video Lessons</h3>
-        <div class="video-grid">
-          ${videos
+        <div class="chapters-container">
+          ${chapters
             .map(
-              (video) => `
-                <a class="video-link" href="${video.redirectUrl}" target="_blank" rel="noopener">
-                  ${video.title}
-                </a>
+              (chapter) => `
+                <div class="chapter-block">
+                  <button class="chapter-header" type="button" data-chapter-id="${escapeHtml(chapter.id)}">
+                    <span class="chapter-title">${escapeHtml(chapter.title)}</span>
+                    <span class="chapter-arrow">▼</span>
+                  </button>
+                  <div class="chapter-videos hidden" data-chapter-id="${escapeHtml(chapter.id)}">
+                    ${chapter.videos
+                      .map(
+                        (video) => `
+                          <a class="video-link" href="${video.redirectUrl}" target="_blank" rel="noopener">
+                            ${escapeHtml(video.title)}
+                          </a>
+                        `
+                      )
+                      .join("")}
+                  </div>
+                </div>
               `
             )
             .join("")}
@@ -252,12 +266,24 @@ function renderCourseDetail(course, videos) {
     history.pushState(null, "", "/");
     showCatalog();
   });
+
+  // Add chapter toggle functionality
+  document.querySelectorAll(".chapter-header").forEach((header) => {
+    header.addEventListener("click", () => {
+      const chapterId = header.dataset.chapterId;
+      const videosDiv = document.querySelector(`.chapter-videos[data-chapter-id="${chapterId}"]`);
+      const arrow = header.querySelector(".chapter-arrow");
+      
+      videosDiv.classList.toggle("hidden");
+      arrow.textContent = videosDiv.classList.contains("hidden") ? "▼" : "▲";
+    });
+  });
 }
 
 async function openCourse(courseId) {
   state.selectedCourseId = courseId;
   const payload = await api(`/api/courses/${courseId}`);
-  renderCourseDetail(payload.course, payload.videos);
+  renderCourseDetail(payload.course, payload.chapters || []);
   showDetailsShell();
   history.pushState(null, "", `/#course/${courseId}`);
 }
