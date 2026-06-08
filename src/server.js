@@ -43,6 +43,26 @@ async function buildVideoList(courseId) {
   const db = await getDb();
   const course = await db.collection("courses").findOne({ id: courseId });
   
+  // Support new chapter-based structure
+  if (course && Array.isArray(course.chapters) && course.chapters.length > 0) {
+    const videos = [];
+    course.chapters.forEach((chapter, chapterIndex) => {
+      if (Array.isArray(chapter.videos)) {
+        chapter.videos.forEach((video, videoIndex) => {
+          videos.push({
+            id: video.id || `ch${chapterIndex + 1}-video-${String(videoIndex + 1).padStart(2, "0")}`,
+            title: `${chapter.title} - ${video.title || `Video ${videoIndex + 1}`}`,
+            url: video.url,
+            chapterId: chapter.id,
+            chapterTitle: chapter.title
+          });
+        });
+      }
+    });
+    return videos;
+  }
+  
+  // Fallback: support old flat videos array structure
   if (course && Array.isArray(course.videos) && course.videos.length > 0) {
     return course.videos.map((item, index) => ({
       id: item.id || `video-${String(index + 1).padStart(3, "0")}`,
