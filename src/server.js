@@ -175,14 +175,14 @@ function formatPrice(amount) {
 
 function courseForClient(course, paid) {
   const finalPrice = course.price;
-  const originalPrice = course.originalPrice ?? course.price;
+  const originalPrice = course.originalPrice;
 
   return {
     ...course,
     paid,
-    originalPriceLabel: formatPrice(originalPrice),
+    originalPriceLabel: originalPrice ? formatPrice(originalPrice) : null,
     priceLabel: `${formatPrice(finalPrice)} Incl GST`,
-    hasDiscount: originalPrice > finalPrice
+    hasDiscount: originalPrice && originalPrice > finalPrice
   };
 }
 
