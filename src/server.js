@@ -92,11 +92,39 @@ function getCookie(req, name) {
 
 async function getCurrentUser(req) {
   const token = getCookie(req, "session");
-  const userId = sessions.get(token);
-  if (!userId) return null;
+  if (!token) {
+    console.log("getCurrentUser: No session token in cookie");
+    return null;
+  }
+  
+  // Check memory cache first
+  let userId = sessions.get(token);
+  
+  // If not in memory, check database
+  if (!userId) {
+    const db = await getDb();
+    const session = await db.collection("sessions").findOne({
+      token,
+      expiresAt: { $gt: new Date() }
+    });
+    
+    if (session) {
+      // Restore to memory cache
+      sessions.set(token, session.userId);
+      userId = session.userId;
+      console.log("getCurrentUser: Session restored from database for userId:", userId);
+    } else {
+      console.log("getCurrentUser: No valid session found in database");
+      return null;
+    }
+  }
   
   const db = await getDb();
-  return await db.collection("users").findOne({ id: userId });
+  const user = await db.collection("users").findOne({ id: userId });
+  if (!user) {
+    console.log("getCurrentUser: User not found for userId:", userId);
+  }
+  return user;
 }
 
 function sendJson(res, status, payload) {
@@ -251,10 +279,20 @@ async function handleApi(req, res, pathname) {
 
     // Auto-login after registration
     const token = crypto.randomBytes(24).toString("hex");
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    
+    // Store session in both memory and database
     sessions.set(token, newUser.id);
+    await db.collection("sessions").insertOne({
+      token,
+      userId: newUser.id,
+      expiresAt,
+      createdAt: new Date()
+    });
+    
     res.writeHead(200, {
       "Content-Type": "application/json",
-      "Set-Cookie": `session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`
+      "Set-Cookie": `session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`
     });
     res.end(JSON.stringify({ user: userForClient(newUser) }));
     return;
@@ -272,17 +310,32 @@ async function handleApi(req, res, pathname) {
     }
 
     const token = crypto.randomBytes(24).toString("hex");
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    
+    // Store session in both memory and database
     sessions.set(token, user.id);
+    await db.collection("sessions").insertOne({
+      token,
+      userId: user.id,
+      expiresAt,
+      createdAt: new Date()
+    });
+    
     res.writeHead(200, {
       "Content-Type": "application/json",
-      "Set-Cookie": `session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`
+      "Set-Cookie": `session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`
     });
     res.end(JSON.stringify({ user: userForClient(user) }));
     return;
   }
 
   if (req.method === "POST" && pathname === "/api/logout") {
-    sessions.delete(getCookie(req, "session"));
+    const token = getCookie(req, "session");
+    sessions.delete(token);
+    
+    // Also delete from database
+    await db.collection("sessions").deleteOne({ token });
+    
     res.writeHead(200, {
       "Content-Type": "application/json",
       "Set-Cookie": "session=; Path=/; Max-Age=0; SameSite=Lax"
@@ -489,6 +542,7 @@ async function handleWatch(req, res, pathname) {
 
   const user = await getCurrentUser(req);
   if (!user) {
+    console.log("Watch endpoint: No user session found, redirecting to login");
     sendRedirect(res, "/#login");
     return true;
   }
@@ -497,11 +551,13 @@ async function handleWatch(req, res, pathname) {
   const paid = await isPaid(user.id, courseId);
   
   if (!paid) {
+    console.log(`Watch endpoint: User ${user.id} not paid for course ${courseId}`);
     sendRedirect(res, `/#course/${courseId}`);
     return true;
   }
 
   const videoUrl = await findVideoUrl(courseId, videoId);
+  console.log(`Watch endpoint: Redirecting to video URL: ${videoUrl}`);
   sendRedirect(res, videoUrl || `/#course/${courseId}`);
   return true;
 }
