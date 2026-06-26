@@ -1,11 +1,13 @@
-console.log("App.js loaded successfully - v3-testimonial-fix");
+console.log("App.js loaded successfully - v4-admin-profile");
 
 const state = {
   user: null,
   courses: [],
   testimonials: [],
   contact: null,
-  selectedCourseId: null
+  selectedCourseId: null,
+  adminCourses: [],
+  adminUsers: []
 };
 
 let els = {};
@@ -24,7 +26,6 @@ function initElements() {
     forgotPasswordMessage: document.querySelector("#forgotPasswordMessage"),
     showForgotPassword: document.querySelector("#showForgotPassword"),
     backToLogin: document.querySelector("#backToLogin"),
-    userName: document.querySelector("#userName"),
     logoutButton: document.querySelector("#logoutButton"),
     courseGrid: document.querySelector("#courseGrid"),
     testimonialGrid: document.querySelector("#testimonialGrid"),
@@ -32,9 +33,32 @@ function initElements() {
     catalogView: document.querySelector("#catalogView"),
     courseDetailView: document.querySelector("#courseDetailView"),
     catalogTab: document.querySelector("#catalogTab"),
-    detailTab: document.querySelector("#detailTab"),
     testimonialForm: document.querySelector("#testimonialForm"),
-    testimonialMessage: document.querySelector("#testimonialMessage")
+    testimonialMessage: document.querySelector("#testimonialMessage"),
+    // User profile
+    userMenuButton: document.querySelector("#userMenuButton"),
+    userInitials: document.querySelector("#userInitials"),
+    userDropdown: document.querySelector("#userDropdown"),
+    dropdownName: document.querySelector("#dropdownName"),
+    dropdownEmail: document.querySelector("#dropdownEmail"),
+    dropdownMobile: document.querySelector("#dropdownMobile"),
+    // Admin
+    adminTab: document.querySelector("#adminTab"),
+    adminView: document.querySelector("#adminView"),
+    adminEnrollCourse: document.querySelector("#adminEnrollCourse"),
+    adminEnrollUser: document.querySelector("#adminEnrollUser"),
+    adminEnrollBtn: document.querySelector("#adminEnrollBtn"),
+    adminEnrollMessage: document.querySelector("#adminEnrollMessage"),
+    adminChapterCourse: document.querySelector("#adminChapterCourse"),
+    adminChapterTitle: document.querySelector("#adminChapterTitle"),
+    adminAddChapterBtn: document.querySelector("#adminAddChapterBtn"),
+    adminChapterMessage: document.querySelector("#adminChapterMessage"),
+    adminVideoCourse: document.querySelector("#adminVideoCourse"),
+    adminVideoChapter: document.querySelector("#adminVideoChapter"),
+    adminVideoTitle: document.querySelector("#adminVideoTitle"),
+    adminVideoUrl: document.querySelector("#adminVideoUrl"),
+    adminAddVideoBtn: document.querySelector("#adminAddVideoBtn"),
+    adminVideoMessage: document.querySelector("#adminVideoMessage")
   };
   console.log("Elements initialized", els);
 }
@@ -78,9 +102,25 @@ async function api(path, options = {}) {
 }
 
 
+function resetState() {
+  state.user = null;
+  state.courses = [];
+  state.testimonials = [];
+  state.contact = null;
+  state.selectedCourseId = null;
+  state.adminCourses = [];
+  state.adminUsers = [];
+}
+
 function showLogin() {
+  resetState();
+  // Clear the URL so the next login doesn't auto-navigate to the previous course
+  history.replaceState(null, "", "/");
   els.loginView.classList.remove("hidden");
   els.appView.classList.add("hidden");
+  // Clear rendered content so stale DOM isn't reused on next login
+  els.courseDetailView.innerHTML = "";
+  els.courseGrid.innerHTML = "";
   els.loginForm.reset();
   els.signupForm.reset();
   showLoginForm();
@@ -89,22 +129,46 @@ function showLogin() {
 function showApp() {
   els.loginView.classList.add("hidden");
   els.appView.classList.remove("hidden");
-  els.userName.textContent = state.user.name;
+  // Populate user profile icon
+  const initials = state.user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  els.userInitials.textContent = initials;
+  els.dropdownName.textContent = state.user.name;
+  els.dropdownEmail.textContent = state.user.email;
+  if (state.user.mobile) {
+    els.dropdownMobile.textContent = state.user.mobile;
+    els.dropdownMobile.classList.remove("hidden");
+  } else {
+    els.dropdownMobile.classList.add("hidden");
+  }
+  // Show admin tab only for admins — always reset first to handle re-login
+  if (state.user.isAdmin) {
+    els.adminTab.classList.remove("hidden");
+  } else {
+    els.adminTab.classList.add("hidden");
+  }
 }
 
 function showCatalog() {
   els.catalogView.classList.remove("hidden");
   els.courseDetailView.classList.add("hidden");
+  els.adminView.classList.add("hidden");
   els.catalogTab.classList.add("active");
-  els.detailTab.classList.remove("active");
+  els.adminTab.classList.remove("active");
+}
+
+function showAdmin() {
+  els.catalogView.classList.add("hidden");
+  els.courseDetailView.classList.add("hidden");
+  els.adminView.classList.remove("hidden");
+  els.catalogTab.classList.remove("active");
+  els.adminTab.classList.add("active");
 }
 
 function showDetailsShell() {
   els.catalogView.classList.add("hidden");
   els.courseDetailView.classList.remove("hidden");
   els.catalogTab.classList.remove("active");
-  els.detailTab.classList.add("active");
-  els.detailTab.disabled = false;
+  els.adminTab.classList.remove("active");
 }
 
 function renderCourses() {
@@ -289,6 +353,61 @@ async function openCourse(courseId) {
 }
 
 
+// ─── Admin helpers ───────────────────────────────────────────────────────────
+
+async function loadAdminData() {
+  const coursesPayload = await api("/api/admin/courses");
+  state.adminCourses = coursesPayload.courses;
+  populateCourseSelects();
+  // Reset user dropdown until a course is picked
+  els.adminEnrollUser.innerHTML = `<option value="">Select course first…</option>`;
+}
+
+async function refreshEnrollUsers(courseId) {
+  if (!courseId) {
+    els.adminEnrollUser.innerHTML = `<option value="">Select course first…</option>`;
+    return;
+  }
+  const usersPayload = await api(`/api/admin/users?excludeEnrolled=${encodeURIComponent(courseId)}`);
+  state.adminUsers = usersPayload.users;
+  if (usersPayload.users.length === 0) {
+    els.adminEnrollUser.innerHTML = `<option value="">All users already enrolled</option>`;
+  } else {
+    const userOptions = usersPayload.users
+      .map((u) => `<option value="${escapeHtml(u.id)}">${escapeHtml(u.name)} — ${escapeHtml(u.email)}</option>`)
+      .join("");
+    els.adminEnrollUser.innerHTML = `<option value="">Select user…</option>${userOptions}`;
+  }
+}
+
+function populateCourseSelects() {
+  const courseOptions = state.adminCourses
+    .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.title)}</option>`)
+    .join("");
+
+  els.adminEnrollCourse.innerHTML = `<option value="">Select course…</option>${courseOptions}`;
+  els.adminChapterCourse.innerHTML = `<option value="">Select course…</option>${courseOptions}`;
+  els.adminVideoCourse.innerHTML = `<option value="">Select course…</option>${courseOptions}`;
+  els.adminVideoChapter.innerHTML = `<option value="">Select chapter…</option>`;
+}
+
+function updateChapterSelect(courseId) {
+  const course = state.adminCourses.find((c) => c.id === courseId);
+  if (!course) {
+    els.adminVideoChapter.innerHTML = `<option value="">Select chapter…</option>`;
+    return;
+  }
+  const chapterOptions = course.chapters
+    .map((ch) => `<option value="${escapeHtml(ch.id)}">${escapeHtml(ch.title)} (${ch.videoCount} videos)</option>`)
+    .join("");
+  els.adminVideoChapter.innerHTML = `<option value="">Select chapter…</option>${chapterOptions}`;
+}
+
+function setAdminMessage(el, text, isError) {
+  el.textContent = text;
+  el.style.color = isError ? "var(--red)" : "var(--green)";
+}
+
 async function boot() {
   console.log("Boot function called");
   try {
@@ -368,6 +487,7 @@ function init() {
       state.user = payload.user;
       await loadCatalog();
       showApp();
+      showCatalog(); // always land on catalog, never re-enter a stale course
     } catch (error) {
       console.error("Login failed:", error);
       els.loginMessage.textContent = error.message;
@@ -396,6 +516,7 @@ function init() {
       state.user = payload.user;
       await loadCatalog();
       showApp();
+      showCatalog(); // always land on catalog, never re-enter a stale course
     } catch (error) {
       console.error("Registration failed:", error);
       els.signupMessage.textContent = error.message;
@@ -403,10 +524,21 @@ function init() {
     }
   });
 
+  // User profile dropdown toggle
+  els.userMenuButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = !els.userDropdown.classList.contains("hidden");
+    els.userDropdown.classList.toggle("hidden", isOpen);
+    els.userMenuButton.setAttribute("aria-expanded", String(!isOpen));
+  });
+  document.addEventListener("click", () => {
+    els.userDropdown.classList.add("hidden");
+    els.userMenuButton.setAttribute("aria-expanded", "false");
+  });
+
   els.logoutButton.addEventListener("click", async () => {
     await api("/api/logout", { method: "POST" });
-    state.user = null;
-    showLogin();
+    showLogin(); // resetState() is called inside showLogin
   });
 
   els.courseGrid.addEventListener("click", (event) => {
@@ -439,8 +571,88 @@ function init() {
   // Admin testimonial toggle removed - manage in MongoDB Atlas
 
   els.catalogTab.addEventListener("click", showCatalog);
-  els.detailTab.addEventListener("click", () => {
-    if (state.selectedCourseId) openCourse(state.selectedCourseId);
+  els.adminTab.addEventListener("click", async () => {
+    showAdmin();
+    await loadAdminData();
+  });
+
+  // Admin: when enroll course changes, reload non-enrolled users
+  els.adminEnrollCourse.addEventListener("change", () => {
+    refreshEnrollUsers(els.adminEnrollCourse.value);
+  });
+
+  // Admin: course select changes chapter list for video form
+  els.adminVideoCourse.addEventListener("change", () => {
+    updateChapterSelect(els.adminVideoCourse.value);
+  });
+
+  // Admin: enroll user
+  els.adminEnrollBtn.addEventListener("click", async () => {
+    const courseId = els.adminEnrollCourse.value;
+    const userId = els.adminEnrollUser.value;
+    els.adminEnrollMessage.textContent = "";
+    if (!courseId || !userId) {
+      setAdminMessage(els.adminEnrollMessage, "Please select both a course and a user.", true);
+      return;
+    }
+    try {
+      const payload = await api("/api/admin/enrollments", {
+        method: "POST",
+        body: JSON.stringify({ userId, courseId })
+      });
+      setAdminMessage(els.adminEnrollMessage, payload.message, false);
+      // Refresh user list to remove newly enrolled user
+      await refreshEnrollUsers(courseId);
+    } catch (err) {
+      setAdminMessage(els.adminEnrollMessage, err.message, true);
+    }
+  });
+
+  // Admin: add chapter
+  els.adminAddChapterBtn.addEventListener("click", async () => {
+    const courseId = els.adminChapterCourse.value;
+    const title = els.adminChapterTitle.value.trim();
+    els.adminChapterMessage.textContent = "";
+    if (!courseId || !title) {
+      setAdminMessage(els.adminChapterMessage, "Please select a course and enter a chapter title.", true);
+      return;
+    }
+    try {
+      const payload = await api(`/api/admin/courses/${courseId}/chapters`, {
+        method: "POST",
+        body: JSON.stringify({ title })
+      });
+      setAdminMessage(els.adminChapterMessage, `Chapter "${payload.chapter.title}" added successfully.`, false);
+      els.adminChapterTitle.value = "";
+      await loadAdminData(); // Refresh so chapter appears in video form
+    } catch (err) {
+      setAdminMessage(els.adminChapterMessage, err.message, true);
+    }
+  });
+
+  // Admin: add video
+  els.adminAddVideoBtn.addEventListener("click", async () => {
+    const courseId = els.adminVideoCourse.value;
+    const chapterId = els.adminVideoChapter.value;
+    const title = els.adminVideoTitle.value.trim();
+    const url = els.adminVideoUrl.value.trim();
+    els.adminVideoMessage.textContent = "";
+    if (!courseId || !chapterId || !title || !url) {
+      setAdminMessage(els.adminVideoMessage, "Please fill in all fields.", true);
+      return;
+    }
+    try {
+      const payload = await api(`/api/admin/courses/${courseId}/chapters/${chapterId}/videos`, {
+        method: "POST",
+        body: JSON.stringify({ title, url })
+      });
+      setAdminMessage(els.adminVideoMessage, `Video "${payload.video.title}" added with ID ${payload.video.id}.`, false);
+      els.adminVideoTitle.value = "";
+      els.adminVideoUrl.value = "";
+      await loadAdminData();
+    } catch (err) {
+      setAdminMessage(els.adminVideoMessage, err.message, true);
+    }
   });
 
   window.addEventListener("popstate", () => {

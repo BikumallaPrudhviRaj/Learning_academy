@@ -85,14 +85,27 @@
             <h1>Course Portal</h1>
           </div>
           <div class="account">
-            <span id="userName"></span>
-            <button id="logoutButton" class="ghost-button" type="button">Logout</button>
+            <div class="user-menu-wrap">
+              <button id="userMenuButton" class="user-icon-button" type="button" aria-label="User menu" aria-expanded="false">
+                <span id="userInitials" class="user-initials"></span>
+              </button>
+              <div id="userDropdown" class="user-dropdown hidden">
+                <div class="user-dropdown-header">
+                  <p id="dropdownName" class="dropdown-name"></p>
+                  <p id="dropdownEmail" class="dropdown-email"></p>
+                  <p id="dropdownMobile" class="dropdown-mobile hidden"></p>
+                </div>
+                <div class="user-dropdown-actions">
+                  <button id="logoutButton" class="dropdown-logout" type="button">Sign out</button>
+                </div>
+              </div>
+            </div>
           </div>
         </header>
 
         <nav class="tabs" aria-label="Portal navigation">
           <button id="catalogTab" class="tab-button active" type="button">Courses</button>
-          <button id="detailTab" class="tab-button" type="button" disabled>Course Details</button>
+          <button id="adminTab" class="tab-button hidden" type="button">Admin</button>
         </nav>
 
         <section id="catalogView">
@@ -131,6 +144,58 @@
         </section>
 
         <section id="courseDetailView" class="hidden"></section>
+
+        <section id="adminView" class="hidden">
+          <div class="admin-view-inner">
+            <h2 class="admin-heading">Admin Panel</h2>
+
+            <!-- Enroll User -->
+            <div class="admin-card">
+              <h3>Enroll User as Paid</h3>
+              <p class="hint">Convert any registered user to paid access for a course.</p>
+              <div class="admin-enroll-controls">
+                <select id="adminEnrollCourse" class="admin-select">
+                  <option value="">Select course…</option>
+                </select>
+                <select id="adminEnrollUser" class="admin-select">
+                  <option value="">Select user…</option>
+                </select>
+                <button id="adminEnrollBtn" class="admin-action-btn" type="button">Enroll</button>
+              </div>
+              <p id="adminEnrollMessage" class="message"></p>
+            </div>
+
+            <!-- Add Chapter -->
+            <div class="admin-card">
+              <h3>Add New Chapter</h3>
+              <div class="admin-enroll-controls">
+                <select id="adminChapterCourse" class="admin-select">
+                  <option value="">Select course…</option>
+                </select>
+                <input id="adminChapterTitle" class="admin-input" type="text" placeholder="Chapter title e.g. Chapter 3: Payroll">
+                <button id="adminAddChapterBtn" class="admin-action-btn" type="button">Add Chapter</button>
+              </div>
+              <p id="adminChapterMessage" class="message"></p>
+            </div>
+
+            <!-- Add Video -->
+            <div class="admin-card">
+              <h3>Add Video to Chapter</h3>
+              <div class="admin-video-controls">
+                <select id="adminVideoCourse" class="admin-select">
+                  <option value="">Select course…</option>
+                </select>
+                <select id="adminVideoChapter" class="admin-select">
+                  <option value="">Select chapter…</option>
+                </select>
+                <input id="adminVideoTitle" class="admin-input" type="text" placeholder="Video title e.g. 11. Payroll Basics">
+                <input id="adminVideoUrl" class="admin-input" type="url" placeholder="Google Drive URL">
+                <button id="adminAddVideoBtn" class="admin-action-btn" type="button">Add Video</button>
+              </div>
+              <p id="adminVideoMessage" class="message"></p>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
 

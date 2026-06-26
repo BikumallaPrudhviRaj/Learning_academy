@@ -223,6 +223,90 @@ textarea:focus {
   font-weight: 800;
 }
 
+/* ── User profile icon & dropdown ── */
+.user-menu-wrap {
+  position: relative;
+}
+
+.user-icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.user-initials {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+.user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 240px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(17,24,39,0.12);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.user-dropdown-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dropdown-name {
+  margin: 0 0 4px;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.dropdown-email,
+.dropdown-mobile {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.dropdown-mobile {
+  margin-top: 2px;
+}
+
+.user-dropdown-actions {
+  padding: 8px;
+}
+
+.dropdown-logout {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--red);
+  cursor: pointer;
+}
+
+.dropdown-logout:hover {
+  background: #fff1f2;
+}
+
 .ghost-button,
 .tab-button {
   border: 1px solid var(--line);
@@ -678,5 +762,92 @@ textarea:focus {
   .detail-grid,
   .video-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── Admin panel ── */
+.admin-view-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 48px;
+}
+
+.admin-heading {
+  margin: 0 0 4px;
+  font-size: clamp(26px, 4vw, 38px);
+}
+
+.admin-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 22px 24px;
+}
+
+.admin-card h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.admin-card .hint {
+  margin: 0 0 14px;
+}
+
+.admin-enroll-controls,
+.admin-video-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-select {
+  flex: 1 1 200px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px 12px;
+  font: inherit;
+  color: var(--ink);
+  background: #ffffff;
+  min-width: 160px;
+}
+
+.admin-input {
+  flex: 1 1 220px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px 12px;
+  font: inherit;
+  color: var(--ink);
+  background: #ffffff;
+  min-width: 160px;
+}
+
+.admin-action-btn {
+  background: var(--ink);
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 11px 20px;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.admin-action-btn:hover {
+  background: #374151;
+}
+
+@media (max-width: 600px) {
+  .admin-enroll-controls,
+  .admin-video-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-select,
+  .admin-input,
+  .admin-action-btn {
+    width: 100%;
+    flex: none;
   }
 }

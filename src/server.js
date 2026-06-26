@@ -25,6 +25,7 @@ function userForClient(user) {
     id: user.id,
     name: user.name,
     email: user.email,
+    mobile: user.mobile || null,
     isAdmin: isAdmin(user)
   };
 }
@@ -503,6 +504,144 @@ async function handleApi(req, res, pathname) {
         createdAt: testimonial.createdAt
       }
     });
+    return;
+  }
+
+  // Admin: list all users
+  if (isAdmin(user) && req.method === "GET" && pathname === "/api/admin/users") {
+    const courseId = new URL(req.url, `http://${req.headers.host}`).searchParams.get("excludeEnrolled");
+    const users = await db.collection("users").find({}).toArray();
+
+    let enrolledUserIds = new Set();
+    if (courseId) {
+      const enrollments = await db.collection("paidEnrollments").find({ courseId, paid: true }).toArray();
+      enrolledUserIds = new Set(enrollments.map((e) => e.userId));
+    }
+
+    sendJson(res, 200, {
+      users: users
+        .filter((u) => !enrolledUserIds.has(u.id))
+        .map((u) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          mobile: u.mobile || null,
+          role: u.role || "student"
+        }))
+    });
+    return;
+  }
+
+  // Admin: get all courses with chapters (for admin panel)
+  if (isAdmin(user) && req.method === "GET" && pathname === "/api/admin/courses") {
+    const courses = await db.collection("courses").find({}).toArray();
+    sendJson(res, 200, {
+      courses: courses.map((c) => ({
+        id: c.id,
+        title: c.title,
+        chapters: (c.chapters || []).map((ch) => ({
+          id: ch.id,
+          title: ch.title,
+          videoCount: (ch.videos || []).length
+        }))
+      }))
+    });
+    return;
+  }
+
+  // Admin: add new chapter to a course
+  const adminChapterMatch = pathname.match(/^\/api\/admin\/courses\/([^/]+)\/chapters$/);
+  if (isAdmin(user) && req.method === "POST" && adminChapterMatch) {
+    const courseId = adminChapterMatch[1];
+    const body = await readBody(req);
+    const title = String(body.title || "").trim();
+    if (!title) {
+      sendJson(res, 400, { error: "Chapter title is required" });
+      return;
+    }
+    const course = await db.collection("courses").findOne({ id: courseId });
+    if (!course) {
+      sendJson(res, 404, { error: "Course not found" });
+      return;
+    }
+    const existingChapters = course.chapters || [];
+    const chapterNum = existingChapters.length + 1;
+    const newChapter = { id: `chapter-${chapterNum}`, title, videos: [] };
+    await db.collection("courses").updateOne(
+      { id: courseId },
+      { $push: { chapters: newChapter } }
+    );
+    sendJson(res, 201, { ok: true, chapter: newChapter });
+    return;
+  }
+
+  // Admin: add video to a chapter (auto-increment video ID)
+  const adminVideoMatch = pathname.match(/^\/api\/admin\/courses\/([^/]+)\/chapters\/([^/]+)\/videos$/);
+  if (isAdmin(user) && req.method === "POST" && adminVideoMatch) {
+    const [, courseId, chapterId] = adminVideoMatch;
+    const body = await readBody(req);
+    const title = String(body.title || "").trim();
+    const url = String(body.url || "").trim();
+    if (!title || !url) {
+      sendJson(res, 400, { error: "Title and URL are required" });
+      return;
+    }
+    const course = await db.collection("courses").findOne({ id: courseId });
+    if (!course) {
+      sendJson(res, 404, { error: "Course not found" });
+      return;
+    }
+    const chapterIndex = (course.chapters || []).findIndex((ch) => ch.id === chapterId);
+    if (chapterIndex === -1) {
+      sendJson(res, 404, { error: "Chapter not found" });
+      return;
+    }
+    // Auto-increment: find the highest video number across all chapters
+    let maxNum = 0;
+    for (const ch of course.chapters || []) {
+      for (const v of ch.videos || []) {
+        const match = String(v.id).match(/^video-(\d+)$/);
+        if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+      }
+    }
+    const newId = `video-${String(maxNum + 1).padStart(3, "0")}`;
+    const newVideo = { id: newId, title, url };
+    await db.collection("courses").updateOne(
+      { id: courseId },
+      { $push: { [`chapters.${chapterIndex}.videos`]: newVideo } }
+    );
+    sendJson(res, 201, { ok: true, video: newVideo });
+    return;
+  }
+
+  // Admin: enroll a user as paid
+  if (isAdmin(user) && req.method === "POST" && pathname === "/api/admin/enrollments") {
+    const body = await readBody(req);
+    const userId = String(body.userId || "").trim();
+    const courseId = String(body.courseId || "").trim();
+    if (!userId || !courseId) {
+      sendJson(res, 400, { error: "userId and courseId are required" });
+      return;
+    }
+    const targetUser = await db.collection("users").findOne({ id: userId });
+    if (!targetUser) {
+      sendJson(res, 404, { error: "User not found" });
+      return;
+    }
+    const existing = await db.collection("paidEnrollments").findOne({ userId, courseId });
+    if (existing) {
+      sendJson(res, 409, { error: "User is already enrolled in this course" });
+      return;
+    }
+    await db.collection("paidEnrollments").insertOne({
+      userId,
+      courseId,
+      paid: true,
+      name: targetUser.name,
+      email: targetUser.email,
+      mobile: targetUser.mobile || null
+    });
+    sendJson(res, 201, { ok: true, message: `${targetUser.name} enrolled successfully` });
     return;
   }
 
