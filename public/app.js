@@ -265,43 +265,42 @@ function renderCourseDetail(course, chapters) {
       <p class="payment-note">Pay <strong>${course.priceLabel}</strong>${course.hasDiscount ? ` (was <s>${course.originalPriceLabel}</s>)` : ""} using this QR code. After the database payment record is updated for your user and this course, refresh this page to unlock the video links.</p>
     `;
 
-  const videoContent = course.paid
-    ? `
-      <section class="video-section">
-        <h3>Video Lessons</h3>
-        <div class="chapters-container">
-          ${chapters
-            .map(
-              (chapter) => `
-                <div class="chapter-block">
-                  <button class="chapter-header" type="button" data-chapter-id="${escapeHtml(chapter.id)}">
-                    <span class="chapter-title">${escapeHtml(chapter.title)}</span>
-                    <span class="chapter-arrow">▼</span>
-                  </button>
-                  <div class="chapter-videos hidden" data-chapter-id="${escapeHtml(chapter.id)}">
-                    ${chapter.videos
-                      .map(
-                        (video) => `
-                          <a class="video-link" href="${video.redirectUrl}" target="_blank" rel="noopener">
-                            ${escapeHtml(video.title)}
-                          </a>
-                        `
-                      )
-                      .join("")}
-                  </div>
+  const videoContent = `
+    <section class="video-section">
+      <h3>Video Lessons</h3>
+      <div class="chapters-container">
+        ${chapters
+          .map(
+            (chapter) => `
+              <div class="chapter-block">
+                <button class="chapter-header" type="button" data-chapter-id="${escapeHtml(chapter.id)}">
+                  <span class="chapter-title">
+                    ${escapeHtml(chapter.title)}
+                    ${chapter.isFree ? `<span class="free-badge">Free Preview</span>` : ""}
+                  </span>
+                  <span class="chapter-arrow">▼</span>
+                </button>
+                <div class="chapter-videos hidden" data-chapter-id="${escapeHtml(chapter.id)}">
+                  ${chapter.locked
+                    ? `<p class="locked-message">🔒 Complete payment to unlock this chapter.</p>`
+                    : chapter.videos
+                        .map(
+                          (video) => `
+                            <a class="video-link" href="${video.redirectUrl}" target="_blank" rel="noopener">
+                              ${escapeHtml(video.title)}
+                            </a>
+                          `
+                        )
+                        .join("")
+                  }
                 </div>
-              `
-            )
-            .join("")}
-        </div>
-      </section>
-    `
-    : `
-      <section class="video-section">
-        <h3>Video Lessons</h3>
-        <p class="payment-note">The recorded lessons appear here after payment approval.</p>
-      </section>
-    `;
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
 
   els.courseDetailView.innerHTML = `
     <button class="back-button" type="button" id="backToCourses">Back to courses</button>

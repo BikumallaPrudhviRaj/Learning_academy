@@ -656,18 +656,30 @@ async function handleApi(req, res, pathname) {
     }
 
     const paid = await isPaid(user.id, courseId);
-    const chapters = paid ? await buildChapterList(courseId) : [];
-    sendJson(res, 200, {
-      course: courseForClient(course, paid),
-      chapters: chapters.map((chapter) => ({
+    const allChapters = await buildChapterList(courseId);
+
+    // Chapter 1 is always free preview; rest requires paid access
+    const chapters = allChapters.map((chapter, index) => {
+      const isFree = index === 0;
+      const isAccessible = isFree || paid;
+      return {
         id: chapter.id,
         title: chapter.title,
-        videos: chapter.videos.map((video) => ({
-          id: video.id,
-          title: video.title,
-          redirectUrl: `/watch/${courseId}/${video.id}`
-        }))
-      }))
+        isFree,
+        locked: !isAccessible,
+        videos: isAccessible
+          ? chapter.videos.map((video) => ({
+              id: video.id,
+              title: video.title,
+              redirectUrl: `/watch/${courseId}/${video.id}`
+            }))
+          : []
+      };
+    });
+
+    sendJson(res, 200, {
+      course: courseForClient(course, paid),
+      chapters
     });
     return;
   }
@@ -687,12 +699,21 @@ async function handleWatch(req, res, pathname) {
   }
 
   const [, courseId, videoId] = match;
-  const paid = await isPaid(user.id, courseId);
-  
-  if (!paid) {
-    console.log(`Watch endpoint: User ${user.id} not paid for course ${courseId}`);
-    sendRedirect(res, `/#course/${courseId}`);
-    return true;
+
+  // Check if video belongs to chapter 1 (free preview)
+  const allChapters = await buildChapterList(courseId);
+  const chapterIndex = allChapters.findIndex((ch) =>
+    ch.videos.some((v) => v.id === videoId)
+  );
+  const isFreeVideo = chapterIndex === 0;
+
+  if (!isFreeVideo) {
+    const paid = await isPaid(user.id, courseId);
+    if (!paid) {
+      console.log(`Watch endpoint: User ${user.id} not paid for course ${courseId}`);
+      sendRedirect(res, `/#course/${courseId}`);
+      return true;
+    }
   }
 
   const videoUrl = await findVideoUrl(courseId, videoId);

@@ -722,6 +722,27 @@ textarea:focus {
   border-color: var(--blue);
 }
 
+.free-badge {
+  display: inline-block;
+  margin-left: 10px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 3px 8px;
+  border-radius: 999px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.locked-message {
+  padding: 12px 14px;
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0;
+}
+
 @media (max-width: 900px) {
   .login-view,
   .detail-hero,
