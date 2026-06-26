@@ -276,7 +276,7 @@ function renderCourseDetail(course, chapters) {
                 <button class="chapter-header" type="button" data-chapter-id="${escapeHtml(chapter.id)}">
                   <span class="chapter-title">
                     ${escapeHtml(chapter.title)}
-                    ${chapter.isFree ? `<span class="free-badge">Free Preview</span>` : ""}
+                    ${chapter.isFree && !course.paid ? `<span class="free-badge">Free Preview</span>` : ""}
                   </span>
                   <span class="chapter-arrow">▼</span>
                 </button>
