@@ -1,4 +1,149 @@
-console.log("App.js loaded successfully - v4-admin-profile");
+console.log("App.js loaded successfully - v5-searchable-select");
+
+// ─── SearchSelect component ──────────────────────────────────────────────────
+// Wraps a native <select> with a searchable dropdown UI.
+// Usage: const ss = new SearchSelect(selectEl); ss.setOptions([{value, label}]);
+// The underlying <select> is kept in sync so existing .value reads work.
+class SearchSelect {
+  constructor(selectEl) {
+    this.select = selectEl;
+    this.value = selectEl.value || "";
+    this._build();
+  }
+
+  _build() {
+    const wrap = document.createElement("div");
+    wrap.className = "ss-wrap";
+
+    this.trigger = document.createElement("button");
+    this.trigger.type = "button";
+    this.trigger.className = "ss-trigger";
+    this.trigger.textContent = this._labelFor(this.value) || this._placeholder();
+
+    this.dropdown = document.createElement("div");
+    this.dropdown.className = "ss-dropdown hidden";
+
+    this.searchInput = document.createElement("input");
+    this.searchInput.type = "text";
+    this.searchInput.className = "ss-search";
+    this.searchInput.placeholder = "Search…";
+
+    this.listEl = document.createElement("ul");
+    this.listEl.className = "ss-list";
+
+    this.dropdown.appendChild(this.searchInput);
+    this.dropdown.appendChild(this.listEl);
+    wrap.appendChild(this.trigger);
+    wrap.appendChild(this.dropdown);
+
+    // Insert after the native select, hide native select
+    this.select.style.display = "none";
+    this.select.insertAdjacentElement("afterend", wrap);
+    this.wrap = wrap;
+
+    // Events
+    this.trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this._toggle();
+    });
+    this.searchInput.addEventListener("input", () => this._filter(this.searchInput.value));
+    document.addEventListener("click", (e) => {
+      if (!wrap.contains(e.target)) this._close();
+    });
+  }
+
+  _placeholder() {
+    const first = this.select.options[0];
+    return first ? first.text : "Select…";
+  }
+
+  _labelFor(value) {
+    const opt = Array.from(this.select.options).find((o) => o.value === value);
+    return opt ? opt.text : "";
+  }
+
+  _toggle() {
+    const isOpen = !this.dropdown.classList.contains("hidden");
+    if (isOpen) { this._close(); return; }
+    this.dropdown.classList.remove("hidden");
+    this.searchInput.value = "";
+    this._renderList(this._getOptions());
+    this.searchInput.focus();
+  }
+
+  _close() {
+    this.dropdown.classList.add("hidden");
+  }
+
+  _getOptions() {
+    return Array.from(this.select.options).map((o) => ({ value: o.value, label: o.text }));
+  }
+
+  _filter(q) {
+    const lower = q.toLowerCase();
+    const filtered = this._getOptions().filter((o) =>
+      !o.value ? true : o.label.toLowerCase().includes(lower)
+    );
+    this._renderList(filtered);
+  }
+
+  _renderList(options) {
+    this.listEl.innerHTML = "";
+    options.forEach((opt) => {
+      const li = document.createElement("li");
+      li.className = "ss-option" + (opt.value === this.value ? " ss-selected" : "") + (!opt.value ? " ss-placeholder" : "");
+      li.textContent = opt.label;
+      li.dataset.value = opt.value;
+      li.addEventListener("click", () => {
+        this._select(opt.value, opt.label);
+      });
+      this.listEl.appendChild(li);
+    });
+  }
+
+  _select(value, label) {
+    this.value = value;
+    this.select.value = value;
+    this.trigger.textContent = label;
+    this.trigger.classList.toggle("ss-has-value", !!value);
+    this._close();
+    // Dispatch change so existing event listeners fire
+    this.select.dispatchEvent(new Event("change"));
+  }
+
+  // Called externally when options change (e.g. after loadAdminData)
+  setOptions(options) {
+    // Rebuild native select options
+    this.select.innerHTML = "";
+    options.forEach(({ value, label }) => {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = label;
+      this.select.appendChild(opt);
+    });
+    // If current value still exists keep it, else reset
+    const stillValid = options.some((o) => o.value === this.value);
+    if (!stillValid) {
+      this.value = "";
+      this.trigger.textContent = this._placeholder();
+      this.trigger.classList.remove("ss-has-value");
+    } else {
+      this.trigger.textContent = this._labelFor(this.value);
+    }
+  }
+
+  // Programmatically set the value (used by loadAdminData restore)
+  setValue(value) {
+    const label = this._labelFor(value);
+    if (label) {
+      this._select(value, label);
+    } else {
+      this.value = "";
+      this.trigger.textContent = this._placeholder();
+      this.trigger.classList.remove("ss-has-value");
+    }
+  }
+}
 
 const state = {
   user: null,
@@ -11,6 +156,7 @@ const state = {
 };
 
 let els = {};
+let ss = {};   // SearchSelect instances keyed by name
 
 function initElements() {
   els = {
@@ -58,8 +204,40 @@ function initElements() {
     adminVideoTitle: document.querySelector("#adminVideoTitle"),
     adminVideoUrl: document.querySelector("#adminVideoUrl"),
     adminAddVideoBtn: document.querySelector("#adminAddVideoBtn"),
-    adminVideoMessage: document.querySelector("#adminVideoMessage")
+    adminVideoMessage: document.querySelector("#adminVideoMessage"),
+    // Edit chapter
+    adminEditChapterCourse: document.querySelector("#adminEditChapterCourse"),
+    adminEditChapterSelect: document.querySelector("#adminEditChapterSelect"),
+    adminEditChapterTitle: document.querySelector("#adminEditChapterTitle"),
+    adminRenameChapterBtn: document.querySelector("#adminRenameChapterBtn"),
+    adminDeleteChapterBtn: document.querySelector("#adminDeleteChapterBtn"),
+    adminEditChapterMessage: document.querySelector("#adminEditChapterMessage"),
+    // Edit video
+    adminEditVideoCourse: document.querySelector("#adminEditVideoCourse"),
+    adminEditVideoChapter: document.querySelector("#adminEditVideoChapter"),
+    adminEditVideoSelect: document.querySelector("#adminEditVideoSelect"),
+    adminEditVideoTitle: document.querySelector("#adminEditVideoTitle"),
+    adminEditVideoUrl: document.querySelector("#adminEditVideoUrl"),
+    adminRenameVideoBtn: document.querySelector("#adminRenameVideoBtn"),
+    adminDeleteVideoBtn: document.querySelector("#adminDeleteVideoBtn"),
+    adminEditVideoMessage: document.querySelector("#adminEditVideoMessage"),
+    // Revoke access
+    adminRevokeCourse: document.querySelector("#adminRevokeCourse"),
+    adminRevokeUser: document.querySelector("#adminRevokeUser"),
+    adminRevokeBtn: document.querySelector("#adminRevokeBtn"),
+    adminRevokeMessage: document.querySelector("#adminRevokeMessage")
   };
+
+  // Initialise SearchSelect on all chapter/video/user dropdowns
+  ss = {
+    enrollUser:       new SearchSelect(els.adminEnrollUser),
+    videoChapter:     new SearchSelect(els.adminVideoChapter),
+    editChapterSel:   new SearchSelect(els.adminEditChapterSelect),
+    editVideoChapter: new SearchSelect(els.adminEditVideoChapter),
+    editVideoSel:     new SearchSelect(els.adminEditVideoSelect),
+    revokeUser:       new SearchSelect(els.adminRevokeUser)
+  };
+
   console.log("Elements initialized", els);
 }
 
@@ -355,56 +533,163 @@ async function openCourse(courseId) {
 // ─── Admin helpers ───────────────────────────────────────────────────────────
 
 async function loadAdminData() {
+  // Snapshot all currently selected values before refresh
+  const snap = {
+    enrollCourse:      els.adminEnrollCourse.value,
+    chapterCourse:     els.adminChapterCourse.value,
+    videoCourse:       els.adminVideoCourse.value,
+    videoChapter:      els.adminVideoChapter.value,
+    editChapterCourse: els.adminEditChapterCourse.value,
+    editChapter:       els.adminEditChapterSelect.value,
+    editVideoCourse:   els.adminEditVideoCourse.value,
+    editVideoChapter:  els.adminEditVideoChapter.value,
+    editVideo:         els.adminEditVideoSelect.value,
+    revokeCourse:      els.adminRevokeCourse.value
+  };
+
   const coursesPayload = await api("/api/admin/courses");
   state.adminCourses = coursesPayload.courses;
   populateCourseSelects();
-  // Reset user dropdown until a course is picked
-  els.adminEnrollUser.innerHTML = `<option value="">Select course first…</option>`;
+
+  // Restore course selects
+  const restoreCourse = (el, val) => { if (val) el.value = val; };
+  restoreCourse(els.adminEnrollCourse, snap.enrollCourse);
+  restoreCourse(els.adminChapterCourse, snap.chapterCourse);
+  restoreCourse(els.adminVideoCourse, snap.videoCourse);
+  restoreCourse(els.adminEditChapterCourse, snap.editChapterCourse);
+  restoreCourse(els.adminEditVideoCourse, snap.editVideoCourse);
+  restoreCourse(els.adminRevokeCourse, snap.revokeCourse);
+
+  // Re-cascade dependent dropdowns
+  if (snap.enrollCourse) await refreshEnrollUsers(snap.enrollCourse);
+
+  if (snap.videoCourse) {
+    ss.videoChapter.setOptions(chapterOptionsList(snap.videoCourse));
+    if (snap.videoChapter) ss.videoChapter.setValue(snap.videoChapter);
+  }
+
+  if (snap.editChapterCourse) {
+    ss.editChapterSel.setOptions(chapterOptionsList(snap.editChapterCourse));
+    if (snap.editChapter) ss.editChapterSel.setValue(snap.editChapter);
+  }
+
+  if (snap.editVideoCourse) {
+    ss.editVideoChapter.setOptions(chapterOptionsList(snap.editVideoCourse));
+    if (snap.editVideoChapter) {
+      ss.editVideoChapter.setValue(snap.editVideoChapter);
+      ss.editVideoSel.setOptions(videoOptionsList(snap.editVideoCourse, snap.editVideoChapter));
+      if (snap.editVideo) ss.editVideoSel.setValue(snap.editVideo);
+    }
+  }
+
+  if (snap.revokeCourse) {
+    const payload = await api(`/api/admin/enrollments?courseId=${encodeURIComponent(snap.revokeCourse)}`);
+    if (payload.enrollments.length === 0) {
+      ss.revokeUser.setOptions([{ value: "", label: "No enrolled users" }]);
+    } else {
+      ss.revokeUser.setOptions(
+        [{ value: "", label: "Select user…" }].concat(
+          payload.enrollments.map((e) => ({ value: e.userId, label: `${e.name} — ${e.email}` }))
+        )
+      );
+    }
+  }
 }
 
 async function refreshEnrollUsers(courseId) {
   if (!courseId) {
-    els.adminEnrollUser.innerHTML = `<option value="">Select course first…</option>`;
+    ss.enrollUser.setOptions([{ value: "", label: "Select course first…" }]);
     return;
   }
   const usersPayload = await api(`/api/admin/users?excludeEnrolled=${encodeURIComponent(courseId)}`);
   state.adminUsers = usersPayload.users;
   if (usersPayload.users.length === 0) {
-    els.adminEnrollUser.innerHTML = `<option value="">All users already enrolled</option>`;
+    ss.enrollUser.setOptions([{ value: "", label: "All users already enrolled" }]);
   } else {
-    const userOptions = usersPayload.users
-      .map((u) => `<option value="${escapeHtml(u.id)}">${escapeHtml(u.name)} — ${escapeHtml(u.email)}</option>`)
-      .join("");
-    els.adminEnrollUser.innerHTML = `<option value="">Select user…</option>${userOptions}`;
+    ss.enrollUser.setOptions(
+      [{ value: "", label: "Select user…" }].concat(
+        usersPayload.users.map((u) => ({ value: u.id, label: `${u.name} — ${u.email}` }))
+      )
+    );
   }
+}
+
+function courseOptionsList() {
+  return [{ value: "", label: "Select course…" }].concat(
+    state.adminCourses.map((c) => ({ value: c.id, label: c.title }))
+  );
+}
+
+function chapterOptionsList(courseId) {
+  const course = state.adminCourses.find((c) => c.id === courseId);
+  if (!course) return [{ value: "", label: "Select chapter…" }];
+  return [{ value: "", label: "Select chapter…" }].concat(
+    course.chapters.map((ch) => ({ value: ch.id, label: ch.title }))
+  );
+}
+
+function videoOptionsList(courseId, chapterId) {
+  const course = state.adminCourses.find((c) => c.id === courseId);
+  if (!course) return [{ value: "", label: "Select video…" }];
+  const chapter = course.chapters.find((ch) => ch.id === chapterId);
+  if (!chapter) return [{ value: "", label: "Select video…" }];
+  return [{ value: "", label: "Select video…" }].concat(
+    (chapter.videos || []).map((v) => ({ value: v.id, label: v.title }))
+  );
 }
 
 function populateCourseSelects() {
-  const courseOptions = state.adminCourses
-    .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.title)}</option>`)
-    .join("");
+  const courses = courseOptionsList();
+  const setPlain = (el, opts) => {
+    el.innerHTML = opts.map((o) => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join("");
+  };
+  setPlain(els.adminEnrollCourse, courses);
+  setPlain(els.adminChapterCourse, courses);
+  setPlain(els.adminVideoCourse, courses);
+  setPlain(els.adminEditChapterCourse, courses);
+  setPlain(els.adminEditVideoCourse, courses);
+  setPlain(els.adminRevokeCourse, courses);
 
-  els.adminEnrollCourse.innerHTML = `<option value="">Select course…</option>${courseOptions}`;
-  els.adminChapterCourse.innerHTML = `<option value="">Select course…</option>${courseOptions}`;
-  els.adminVideoCourse.innerHTML = `<option value="">Select course…</option>${courseOptions}`;
-  els.adminVideoChapter.innerHTML = `<option value="">Select chapter…</option>`;
+  ss.enrollUser.setOptions([{ value: "", label: "Select course first…" }]);
+  ss.videoChapter.setOptions([{ value: "", label: "Select chapter…" }]);
+  ss.editChapterSel.setOptions([{ value: "", label: "Select chapter…" }]);
+  ss.editVideoChapter.setOptions([{ value: "", label: "Select chapter…" }]);
+  ss.editVideoSel.setOptions([{ value: "", label: "Select video…" }]);
+  ss.revokeUser.setOptions([{ value: "", label: "Select course first…" }]);
 }
 
 function updateChapterSelect(courseId) {
-  const course = state.adminCourses.find((c) => c.id === courseId);
-  if (!course) {
-    els.adminVideoChapter.innerHTML = `<option value="">Select chapter…</option>`;
-    return;
-  }
-  const chapterOptions = course.chapters
-    .map((ch) => `<option value="${escapeHtml(ch.id)}">${escapeHtml(ch.title)} (${ch.videoCount} videos)</option>`)
-    .join("");
-  els.adminVideoChapter.innerHTML = `<option value="">Select chapter…</option>${chapterOptions}`;
+  ss.videoChapter.setOptions(chapterOptionsList(courseId));
 }
 
 function setAdminMessage(el, text, isError) {
   el.textContent = text;
   el.style.color = isError ? "var(--red)" : "var(--green)";
+  if (!isError && text) {
+    clearTimeout(el._clearTimer);
+    el._clearTimer = setTimeout(() => { el.textContent = ""; }, 4000);
+  }
+}
+
+function adminConfirm(message) {
+  return new Promise((resolve) => {
+    const overlay = document.querySelector("#adminConfirmOverlay");
+    const text = document.querySelector("#adminConfirmText");
+    const okBtn = document.querySelector("#adminConfirmOk");
+    const cancelBtn = document.querySelector("#adminConfirmCancel");
+    text.textContent = message;
+    overlay.classList.remove("hidden");
+    const cleanup = (result) => {
+      overlay.classList.add("hidden");
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+      resolve(result);
+    };
+    const onOk = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+  });
 }
 
 async function boot() {
@@ -589,18 +874,21 @@ function init() {
   els.adminEnrollBtn.addEventListener("click", async () => {
     const courseId = els.adminEnrollCourse.value;
     const userId = els.adminEnrollUser.value;
+    const courseName = els.adminEnrollCourse.options[els.adminEnrollCourse.selectedIndex]?.text || "";
+    const userName = els.adminEnrollUser.options[els.adminEnrollUser.selectedIndex]?.text || "";
     els.adminEnrollMessage.textContent = "";
     if (!courseId || !userId) {
       setAdminMessage(els.adminEnrollMessage, "Please select both a course and a user.", true);
       return;
     }
+    const ok = await adminConfirm(`Enroll "${userName}" in "${courseName}"?\n\nThis will give them full paid access to the course.`);
+    if (!ok) return;
     try {
       const payload = await api("/api/admin/enrollments", {
         method: "POST",
         body: JSON.stringify({ userId, courseId })
       });
       setAdminMessage(els.adminEnrollMessage, payload.message, false);
-      // Refresh user list to remove newly enrolled user
       await refreshEnrollUsers(courseId);
     } catch (err) {
       setAdminMessage(els.adminEnrollMessage, err.message, true);
@@ -652,6 +940,136 @@ function init() {
     } catch (err) {
       setAdminMessage(els.adminVideoMessage, err.message, true);
     }
+  });
+
+  // Admin: edit chapter — cascade selects
+  els.adminEditChapterCourse.addEventListener("change", () => {
+    ss.editChapterSel.setOptions(chapterOptionsList(els.adminEditChapterCourse.value));
+  });
+
+  // Admin: rename chapter
+  els.adminRenameChapterBtn.addEventListener("click", async () => {
+    const courseId = els.adminEditChapterCourse.value;
+    const chapterId = els.adminEditChapterSelect.value;
+    const title = els.adminEditChapterTitle.value.trim();
+    els.adminEditChapterMessage.textContent = "";
+    if (!courseId || !chapterId || !title) {
+      setAdminMessage(els.adminEditChapterMessage, "Select a course, chapter, and enter new title.", true);
+      return;
+    }
+    try {
+      await api(`/api/admin/courses/${courseId}/chapters/${chapterId}`, { method: "PATCH", body: JSON.stringify({ title }) });
+      setAdminMessage(els.adminEditChapterMessage, "Chapter renamed successfully.", false);
+      els.adminEditChapterTitle.value = "";
+      await loadAdminData();
+    } catch (err) { setAdminMessage(els.adminEditChapterMessage, err.message, true); }
+  });
+
+  // Admin: delete chapter
+  els.adminDeleteChapterBtn.addEventListener("click", async () => {
+    const courseId = els.adminEditChapterCourse.value;
+    const chapterId = els.adminEditChapterSelect.value;
+    const chapterTitle = ss.editChapterSel.trigger?.textContent || "";
+    els.adminEditChapterMessage.textContent = "";
+    if (!courseId || !chapterId) {
+      setAdminMessage(els.adminEditChapterMessage, "Select a course and chapter.", true);
+      return;
+    }
+    const ok = await adminConfirm(`Delete chapter "${chapterTitle}"?\n\nThis will permanently delete the chapter and all its videos. This cannot be undone.`);
+    if (!ok) return;
+    try {
+      await api(`/api/admin/courses/${courseId}/chapters/${chapterId}`, { method: "DELETE" });
+      setAdminMessage(els.adminEditChapterMessage, "Chapter deleted.", false);
+      await loadAdminData();
+    } catch (err) { setAdminMessage(els.adminEditChapterMessage, err.message, true); }
+  });
+
+  // Admin: edit video — cascade selects
+  els.adminEditVideoCourse.addEventListener("change", () => {
+    ss.editVideoChapter.setOptions(chapterOptionsList(els.adminEditVideoCourse.value));
+    ss.editVideoSel.setOptions([{ value: "", label: "Select video…" }]);
+  });
+  els.adminEditVideoChapter.addEventListener("change", () => {
+    ss.editVideoSel.setOptions(videoOptionsList(els.adminEditVideoCourse.value, els.adminEditVideoChapter.value));
+  });
+
+  // Admin: save video (rename / re-link)
+  els.adminRenameVideoBtn.addEventListener("click", async () => {
+    const courseId = els.adminEditVideoCourse.value;
+    const chapterId = els.adminEditVideoChapter.value;
+    const videoId = els.adminEditVideoSelect.value;
+    const title = els.adminEditVideoTitle.value.trim();
+    const url = els.adminEditVideoUrl.value.trim();
+    els.adminEditVideoMessage.textContent = "";
+    if (!courseId || !chapterId || !videoId || (!title && !url)) {
+      setAdminMessage(els.adminEditVideoMessage, "Select a video and enter a new title or URL.", true);
+      return;
+    }
+    try {
+      await api(`/api/admin/courses/${courseId}/chapters/${chapterId}/videos/${videoId}`, { method: "PATCH", body: JSON.stringify({ title, url }) });
+      setAdminMessage(els.adminEditVideoMessage, "Video updated successfully.", false);
+      els.adminEditVideoTitle.value = "";
+      els.adminEditVideoUrl.value = "";
+      await loadAdminData();
+    } catch (err) { setAdminMessage(els.adminEditVideoMessage, err.message, true); }
+  });
+
+  // Admin: delete video
+  els.adminDeleteVideoBtn.addEventListener("click", async () => {
+    const courseId = els.adminEditVideoCourse.value;
+    const chapterId = els.adminEditVideoChapter.value;
+    const videoId = els.adminEditVideoSelect.value;
+    const videoTitle = ss.editVideoSel.trigger?.textContent || "";
+    els.adminEditVideoMessage.textContent = "";
+    if (!courseId || !chapterId || !videoId) {
+      setAdminMessage(els.adminEditVideoMessage, "Select a course, chapter, and video.", true);
+      return;
+    }
+    const ok = await adminConfirm(`Delete video "${videoTitle}"?\n\nThis will permanently remove the video from the chapter. This cannot be undone.`);
+    if (!ok) return;
+    try {
+      await api(`/api/admin/courses/${courseId}/chapters/${chapterId}/videos/${videoId}`, { method: "DELETE" });
+      setAdminMessage(els.adminEditVideoMessage, "Video deleted.", false);
+      await loadAdminData();
+    } catch (err) { setAdminMessage(els.adminEditVideoMessage, err.message, true); }
+  });
+
+  // Admin: revoke — load enrolled users when course changes
+  els.adminRevokeCourse.addEventListener("change", async () => {
+    const courseId = els.adminRevokeCourse.value;
+    if (!courseId) { ss.revokeUser.setOptions([{ value: "", label: "Select course first…" }]); return; }
+    try {
+      const payload = await api(`/api/admin/enrollments?courseId=${encodeURIComponent(courseId)}`);
+      if (payload.enrollments.length === 0) {
+        ss.revokeUser.setOptions([{ value: "", label: "No enrolled users" }]);
+      } else {
+        ss.revokeUser.setOptions(
+          [{ value: "", label: "Select user…" }].concat(
+            payload.enrollments.map((e) => ({ value: e.userId, label: `${e.name} — ${e.email}` }))
+          )
+        );
+      }
+    } catch (err) { setAdminMessage(els.adminRevokeMessage, err.message, true); }
+  });
+
+  // Admin: revoke paid access
+  els.adminRevokeBtn.addEventListener("click", async () => {
+    const courseId = els.adminRevokeCourse.value;
+    const userId = els.adminRevokeUser.value;
+    const userName = ss.revokeUser.trigger?.textContent || "";
+    els.adminRevokeMessage.textContent = "";
+    if (!courseId || !userId) {
+      setAdminMessage(els.adminRevokeMessage, "Select a course and user.", true);
+      return;
+    }
+    const courseName = els.adminRevokeCourse.options[els.adminRevokeCourse.selectedIndex]?.text || "";
+    const ok = await adminConfirm(`Revoke paid access for "${userName}"?\n\nThey will lose access to "${courseName}" immediately.`);
+    if (!ok) return;
+    try {
+      const payload = await api(`/api/admin/enrollments/${courseId}/${userId}`, { method: "DELETE" });
+      setAdminMessage(els.adminRevokeMessage, payload.message, false);
+      els.adminRevokeCourse.dispatchEvent(new Event("change"));
+    } catch (err) { setAdminMessage(els.adminRevokeMessage, err.message, true); }
   });
 
   window.addEventListener("popstate", () => {

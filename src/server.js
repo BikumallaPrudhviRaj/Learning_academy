@@ -532,7 +532,7 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
-  // Admin: get all courses with chapters (for admin panel)
+  // Admin: get all courses with chapters and videos (for admin panel)
   if (isAdmin(user) && req.method === "GET" && pathname === "/api/admin/courses") {
     const courses = await db.collection("courses").find({}).toArray();
     sendJson(res, 200, {
@@ -542,8 +542,101 @@ async function handleApi(req, res, pathname) {
         chapters: (c.chapters || []).map((ch) => ({
           id: ch.id,
           title: ch.title,
-          videoCount: (ch.videos || []).length
+          videoCount: (ch.videos || []).length,
+          videos: (ch.videos || []).map((v) => ({ id: v.id, title: v.title }))
         }))
+      }))
+    });
+    return;
+  }
+
+  // Admin: rename a chapter
+  const adminChapterEditMatch = pathname.match(/^\/api\/admin\/courses\/([^/]+)\/chapters\/([^/]+)$/);
+  if (isAdmin(user) && req.method === "PATCH" && adminChapterEditMatch) {
+    const [, courseId, chapterId] = adminChapterEditMatch;
+    const body = await readBody(req);
+    const title = String(body.title || "").trim();
+    if (!title) { sendJson(res, 400, { error: "Title is required" }); return; }
+    const course = await db.collection("courses").findOne({ id: courseId });
+    if (!course) { sendJson(res, 404, { error: "Course not found" }); return; }
+    const chapterIndex = (course.chapters || []).findIndex((ch) => ch.id === chapterId);
+    if (chapterIndex === -1) { sendJson(res, 404, { error: "Chapter not found" }); return; }
+    await db.collection("courses").updateOne(
+      { id: courseId },
+      { $set: { [`chapters.${chapterIndex}.title`]: title } }
+    );
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  // Admin: delete a chapter
+  if (isAdmin(user) && req.method === "DELETE" && adminChapterEditMatch) {
+    const [, courseId, chapterId] = adminChapterEditMatch;
+    await db.collection("courses").updateOne(
+      { id: courseId },
+      { $pull: { chapters: { id: chapterId } } }
+    );
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  // Admin: rename a video
+  const adminVideoEditMatch = pathname.match(/^\/api\/admin\/courses\/([^/]+)\/chapters\/([^/]+)\/videos\/([^/]+)$/);
+  if (isAdmin(user) && req.method === "PATCH" && adminVideoEditMatch) {
+    const [, courseId, chapterId, videoId] = adminVideoEditMatch;
+    const body = await readBody(req);
+    const title = String(body.title || "").trim();
+    const url = String(body.url || "").trim();
+    if (!title && !url) { sendJson(res, 400, { error: "Title or URL is required" }); return; }
+    const course = await db.collection("courses").findOne({ id: courseId });
+    if (!course) { sendJson(res, 404, { error: "Course not found" }); return; }
+    const chapterIndex = (course.chapters || []).findIndex((ch) => ch.id === chapterId);
+    if (chapterIndex === -1) { sendJson(res, 404, { error: "Chapter not found" }); return; }
+    const videoIndex = (course.chapters[chapterIndex].videos || []).findIndex((v) => v.id === videoId);
+    if (videoIndex === -1) { sendJson(res, 404, { error: "Video not found" }); return; }
+    const updates = {};
+    if (title) updates[`chapters.${chapterIndex}.videos.${videoIndex}.title`] = title;
+    if (url) updates[`chapters.${chapterIndex}.videos.${videoIndex}.url`] = url;
+    await db.collection("courses").updateOne({ id: courseId }, { $set: updates });
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  // Admin: delete a video
+  if (isAdmin(user) && req.method === "DELETE" && adminVideoEditMatch) {
+    const [, courseId, chapterId, videoId] = adminVideoEditMatch;
+    const course = await db.collection("courses").findOne({ id: courseId });
+    if (!course) { sendJson(res, 404, { error: "Course not found" }); return; }
+    const chapterIndex = (course.chapters || []).findIndex((ch) => ch.id === chapterId);
+    if (chapterIndex === -1) { sendJson(res, 404, { error: "Chapter not found" }); return; }
+    await db.collection("courses").updateOne(
+      { id: courseId },
+      { $pull: { [`chapters.${chapterIndex}.videos`]: { id: videoId } } }
+    );
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  // Admin: revoke paid enrollment
+  const adminRevokeMatch = pathname.match(/^\/api\/admin\/enrollments\/([^/]+)\/([^/]+)$/);
+  if (isAdmin(user) && req.method === "DELETE" && adminRevokeMatch) {
+    const [, courseId, userId] = adminRevokeMatch;
+    await db.collection("paidEnrollments").deleteOne({ userId, courseId });
+    sendJson(res, 200, { ok: true, message: "Access revoked" });
+    return;
+  }
+
+  // Admin: list enrolled users for a course
+  if (isAdmin(user) && req.method === "GET" && pathname.startsWith("/api/admin/enrollments")) {
+    const courseId = new URL(req.url, `http://${req.headers.host}`).searchParams.get("courseId");
+    if (!courseId) { sendJson(res, 400, { error: "courseId is required" }); return; }
+    const enrollments = await db.collection("paidEnrollments").find({ courseId, paid: true }).toArray();
+    sendJson(res, 200, {
+      enrollments: enrollments.map((e) => ({
+        userId: e.userId,
+        name: e.name || e.userId,
+        email: e.email || "",
+        mobile: e.mobile || ""
       }))
     });
     return;

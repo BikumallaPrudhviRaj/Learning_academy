@@ -815,34 +815,64 @@ textarea:focus {
   margin: 0 0 14px;
 }
 
-.admin-enroll-controls,
-.admin-video-controls {
+.admin-rows {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
   align-items: center;
+  gap: 12px;
+}
+
+.admin-row-actions {
+  grid-template-columns: 180px auto;
+}
+
+.admin-row-actions > * {
+  justify-self: start;
+}
+
+.admin-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: right;
+  padding-right: 4px;
+}
+
+.admin-label-hint {
+  font-weight: 400;
+  opacity: 0.75;
 }
 
 .admin-select {
-  flex: 1 1 200px;
+  width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 11px 12px;
   font: inherit;
   color: var(--ink);
   background: #ffffff;
-  min-width: 160px;
 }
 
 .admin-input {
-  flex: 1 1 220px;
+  width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 11px 12px;
   font: inherit;
   color: var(--ink);
   background: #ffffff;
-  min-width: 160px;
+}
+
+.admin-row-actions {
+  display: flex;
+  gap: 10px;
+  padding-left: calc(180px + 12px);
 }
 
 .admin-action-btn {
@@ -852,23 +882,169 @@ textarea:focus {
   padding: 11px 20px;
   font-weight: 800;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .admin-action-btn:hover {
   background: #374151;
 }
 
-@media (max-width: 600px) {
-  .admin-enroll-controls,
-  .admin-video-controls {
-    flex-direction: column;
-    align-items: stretch;
+.admin-danger-btn {
+  background: #b42318;
+}
+
+.admin-danger-btn:hover {
+  background: #912018;
+}
+
+/* ── SearchSelect component ── */
+.ss-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.ss-trigger {
+  width: 100%;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px 32px 11px 12px;
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+.ss-trigger::after {
+  content: "▾";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.ss-trigger.ss-has-value {
+  color: var(--ink);
+}
+
+.ss-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.1);
+  z-index: 150;
+  overflow: hidden;
+}
+
+.ss-search {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  background: var(--soft);
+}
+
+.ss-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.ss-option {
+  padding: 9px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.ss-option:hover {
+  background: var(--soft);
+}
+
+.ss-option.ss-selected {
+  background: #eef4ff;
+  font-weight: 700;
+  color: var(--blue);
+}
+
+.ss-option.ss-placeholder {
+  color: var(--muted);
+  font-style: italic;
+  cursor: default;
+}
+
+/* ── Admin confirm dialog ── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.confirm-dialog {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 420px;
+  width: calc(100% - 32px);
+  box-shadow: 0 16px 40px rgba(17, 24, 39, 0.18);
+}
+
+.confirm-text {
+  margin: 0 0 24px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.confirm-cancel-btn {
+  background: #ffffff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.confirm-cancel-btn:hover {
+  background: var(--soft);
+}
+
+@media (max-width: 700px) {
+  .admin-row {
+    grid-template-columns: 1fr;
   }
-  .admin-select,
-  .admin-input,
+  .admin-label {
+    text-align: left;
+  }
+  .admin-row-actions {
+    padding-left: 0;
+    flex-wrap: wrap;
+  }
   .admin-action-btn {
     width: 100%;
-    flex: none;
   }
 }

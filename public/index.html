@@ -152,52 +152,184 @@
             <!-- Enroll User -->
             <div class="admin-card">
               <h3>Enroll User as Paid</h3>
-              <p class="hint">Convert any registered user to paid access for a course.</p>
-              <div class="admin-enroll-controls">
-                <select id="adminEnrollCourse" class="admin-select">
-                  <option value="">Select course…</option>
-                </select>
-                <select id="adminEnrollUser" class="admin-select">
-                  <option value="">Select user…</option>
-                </select>
-                <button id="adminEnrollBtn" class="admin-action-btn" type="button">Enroll</button>
+              <p class="hint">Grant a registered user paid access to a course.</p>
+              <div class="admin-rows">
+                <div class="admin-row">
+                  <label class="admin-label">Course</label>
+                  <select id="adminEnrollCourse" class="admin-select">
+                    <option value="">Select course…</option>
+                  </select>
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">User</label>
+                  <select id="adminEnrollUser" class="admin-select">
+                    <option value="">Select course first…</option>
+                  </select>
+                </div>
+                <div class="admin-row admin-row-actions">
+                  <button id="adminEnrollBtn" class="admin-action-btn" type="button">Enroll User</button>
+                </div>
               </div>
               <p id="adminEnrollMessage" class="message"></p>
+            </div>
+
+            <!-- Revoke Access -->
+            <div class="admin-card">
+              <h3>Revoke Paid Access</h3>
+              <p class="hint">Remove a user's paid enrollment from a course.</p>
+              <div class="admin-rows">
+                <div class="admin-row">
+                  <label class="admin-label">Course</label>
+                  <select id="adminRevokeCourse" class="admin-select">
+                    <option value="">Select course…</option>
+                  </select>
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">Enrolled User</label>
+                  <select id="adminRevokeUser" class="admin-select">
+                    <option value="">Select course first…</option>
+                  </select>
+                </div>
+                <div class="admin-row admin-row-actions">
+                  <button id="adminRevokeBtn" class="admin-action-btn admin-danger-btn" type="button">Revoke Access</button>
+                </div>
+              </div>
+              <p id="adminRevokeMessage" class="message"></p>
             </div>
 
             <!-- Add Chapter -->
             <div class="admin-card">
               <h3>Add New Chapter</h3>
-              <div class="admin-enroll-controls">
-                <select id="adminChapterCourse" class="admin-select">
-                  <option value="">Select course…</option>
-                </select>
-                <input id="adminChapterTitle" class="admin-input" type="text" placeholder="Chapter title e.g. Chapter 3: Payroll">
-                <button id="adminAddChapterBtn" class="admin-action-btn" type="button">Add Chapter</button>
+              <div class="admin-rows">
+                <div class="admin-row">
+                  <label class="admin-label">Course</label>
+                  <select id="adminChapterCourse" class="admin-select">
+                    <option value="">Select course…</option>
+                  </select>
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">Chapter Title</label>
+                  <input id="adminChapterTitle" class="admin-input" type="text" placeholder="e.g. Chapter 3: Payroll Basics">
+                </div>
+                <div class="admin-row admin-row-actions">
+                  <button id="adminAddChapterBtn" class="admin-action-btn" type="button">Add Chapter</button>
+                </div>
               </div>
               <p id="adminChapterMessage" class="message"></p>
+            </div>
+
+            <!-- Rename / Delete Chapter -->
+            <div class="admin-card">
+              <h3>Rename or Delete a Chapter</h3>
+              <div class="admin-rows">
+                <div class="admin-row">
+                  <label class="admin-label">Course</label>
+                  <select id="adminEditChapterCourse" class="admin-select">
+                    <option value="">Select course…</option>
+                  </select>
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">Chapter</label>
+                  <select id="adminEditChapterSelect" class="admin-select">
+                    <option value="">Select chapter…</option>
+                  </select>
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">New Title <span class="admin-label-hint">(for rename only)</span></label>
+                  <input id="adminEditChapterTitle" class="admin-input" type="text" placeholder="Enter new chapter title">
+                </div>
+                <div class="admin-row admin-row-actions">
+                  <button id="adminRenameChapterBtn" class="admin-action-btn" type="button">Rename Chapter</button>
+                  <button id="adminDeleteChapterBtn" class="admin-action-btn admin-danger-btn" type="button">Delete Chapter</button>
+                </div>
+              </div>
+              <p id="adminEditChapterMessage" class="message"></p>
             </div>
 
             <!-- Add Video -->
             <div class="admin-card">
               <h3>Add Video to Chapter</h3>
-              <div class="admin-video-controls">
-                <select id="adminVideoCourse" class="admin-select">
-                  <option value="">Select course…</option>
-                </select>
-                <select id="adminVideoChapter" class="admin-select">
-                  <option value="">Select chapter…</option>
-                </select>
-                <input id="adminVideoTitle" class="admin-input" type="text" placeholder="Video title e.g. 11. Payroll Basics">
-                <input id="adminVideoUrl" class="admin-input" type="url" placeholder="Google Drive URL">
-                <button id="adminAddVideoBtn" class="admin-action-btn" type="button">Add Video</button>
+              <div class="admin-rows">
+                <div class="admin-row">
+                  <label class="admin-label">Course</label>
+                  <select id="adminVideoCourse" class="admin-select">
+                    <option value="">Select course…</option>
+                  </select>
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">Chapter</label>
+                  <select id="adminVideoChapter" class="admin-select">
+                    <option value="">Select chapter…</option>
+                  </select>
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">Video Title</label>
+                  <input id="adminVideoTitle" class="admin-input" type="text" placeholder="e.g. 11. Payroll Basics">
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">Google Drive URL</label>
+                  <input id="adminVideoUrl" class="admin-input" type="url" placeholder="https://drive.google.com/file/d/…/view">
+                </div>
+                <div class="admin-row admin-row-actions">
+                  <button id="adminAddVideoBtn" class="admin-action-btn" type="button">Add Video</button>
+                </div>
               </div>
               <p id="adminVideoMessage" class="message"></p>
             </div>
+
+            <!-- Rename / Re-link / Delete Video -->
+            <div class="admin-card">
+              <h3>Edit or Delete a Video</h3>
+              <div class="admin-rows">
+                <div class="admin-row">
+                  <label class="admin-label">Course</label>
+                  <select id="adminEditVideoCourse" class="admin-select">
+                    <option value="">Select course…</option>
+                  </select>
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">Chapter</label>
+                  <select id="adminEditVideoChapter" class="admin-select">
+                    <option value="">Select chapter…</option>
+                  </select>
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">Video</label>
+                  <select id="adminEditVideoSelect" class="admin-select">
+                    <option value="">Select video…</option>
+                  </select>
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">New Title <span class="admin-label-hint">(optional)</span></label>
+                  <input id="adminEditVideoTitle" class="admin-input" type="text" placeholder="Leave blank to keep current title">
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">New Google Drive URL <span class="admin-label-hint">(optional)</span></label>
+                  <input id="adminEditVideoUrl" class="admin-input" type="url" placeholder="Leave blank to keep current URL">
+                </div>
+                <div class="admin-row admin-row-actions">
+                  <button id="adminRenameVideoBtn" class="admin-action-btn" type="button">Save Changes</button>
+                  <button id="adminDeleteVideoBtn" class="admin-action-btn admin-danger-btn" type="button">Delete Video</button>
+                </div>
+              </div>
+              <p id="adminEditVideoMessage" class="message"></p>
+            </div>
+
           </div>
         </section>
       </section>
     </main>
+
+    <!-- Admin confirmation dialog -->
+    <div id="adminConfirmOverlay" class="confirm-overlay hidden">
+      <div class="confirm-dialog">
+        <p id="adminConfirmText" class="confirm-text"></p>
+        <div class="confirm-actions">
+          <button id="adminConfirmOk" class="admin-action-btn admin-danger-btn" type="button">Confirm</button>
+          <button id="adminConfirmCancel" class="admin-action-btn confirm-cancel-btn" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
 
     <script src="/app.js"></script>
   </body>
