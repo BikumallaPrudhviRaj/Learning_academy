@@ -1315,6 +1315,125 @@ input:focus, textarea:focus {
 .chat-teaser-close:hover { color: var(--ink); background: var(--bg); }
 
 /* ══════════════════════════════════════════════════════════
+   SEARCHABLE SELECT COMPONENT
+══════════════════════════════════════════════════════════ */
+.ss-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.ss-trigger {
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 32px 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ss-trigger::after {
+  content: "▾";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--muted);
+  pointer-events: none;
+  transition: transform 0.15s;
+}
+
+.ss-trigger[aria-expanded="true"]::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.ss-trigger:hover {
+  border-color: #94a3b8;
+}
+
+.ss-trigger:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+.ss-trigger.ss-has-value {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.ss-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  z-index: 150;
+  overflow: hidden;
+  animation: dropdown-in 0.12s ease;
+}
+
+.ss-search {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  background: var(--soft);
+  color: var(--ink);
+}
+
+.ss-search::placeholder { color: var(--muted); }
+
+.ss-list {
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.ss-option {
+  padding: 9px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--ink);
+  transition: background 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ss-option:hover { background: var(--soft); }
+
+.ss-option.ss-selected {
+  background: var(--blue-lt);
+  color: var(--blue);
+  font-weight: 700;
+}
+
+.ss-option.ss-placeholder {
+  color: var(--muted);
+  font-style: italic;
+  cursor: default;
+}
+.ss-option.ss-placeholder:hover { background: transparent; }
+
+/* ══════════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════════ */
 @media (max-width: 960px) {

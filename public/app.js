@@ -6,6 +6,122 @@
 function qs(sel, ctx = document) { return ctx.querySelector(sel); }
 function qsa(sel, ctx = document) { return [...ctx.querySelectorAll(sel)]; }
 
+// ── SearchSelect ──────────────────────────────────────────
+// Wraps a native <select> with a searchable dropdown.
+// The underlying <select> stays hidden and in sync so all
+// existing .value reads and addEventListener("change") work.
+class SearchSelect {
+  constructor(selectEl) {
+    this._sel  = selectEl;
+    this._open = false;
+    this._build();
+  }
+
+  _build() {
+    const wrap = document.createElement("div");
+    wrap.className = "ss-wrap";
+
+    this._btn = document.createElement("button");
+    this._btn.type = "button";
+    this._btn.className = "ss-trigger";
+    this._btn.setAttribute("aria-haspopup", "listbox");
+    this._btn.setAttribute("aria-expanded", "false");
+
+    this._drop = document.createElement("div");
+    this._drop.className = "ss-dropdown hidden";
+    this._drop.setAttribute("role", "listbox");
+
+    this._search = document.createElement("input");
+    this._search.type = "text";
+    this._search.className = "ss-search";
+    this._search.placeholder = "Search…";
+    this._search.setAttribute("autocomplete", "off");
+
+    this._list = document.createElement("ul");
+    this._list.className = "ss-list";
+
+    this._drop.appendChild(this._search);
+    this._drop.appendChild(this._list);
+    wrap.appendChild(this._btn);
+    wrap.appendChild(this._drop);
+
+    this._sel.style.display = "none";
+    this._sel.insertAdjacentElement("afterend", wrap);
+    this._wrap = wrap;
+
+    this._btn.addEventListener("click", (e) => { e.stopPropagation(); this._toggle(); });
+    this._search.addEventListener("input", () => this._render(this._search.value));
+    document.addEventListener("click", (e) => { if (!wrap.contains(e.target)) this._close(); });
+    this._search.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") this._close();
+    });
+
+    this._syncLabel();
+  }
+
+  _toggle() { this._open ? this._close() : this._openDrop(); }
+
+  _openDrop() {
+    this._open = true;
+    this._drop.classList.remove("hidden");
+    this._btn.setAttribute("aria-expanded", "true");
+    this._search.value = "";
+    this._render("");
+    this._search.focus();
+  }
+
+  _close() {
+    this._open = false;
+    this._drop.classList.add("hidden");
+    this._btn.setAttribute("aria-expanded", "false");
+  }
+
+  _render(q) {
+    const lower = q.toLowerCase();
+    const opts  = Array.from(this._sel.options);
+    const cur   = this._sel.value;
+    this._list.innerHTML = "";
+    opts
+      .filter((o) => !o.value || o.text.toLowerCase().includes(lower))
+      .forEach((o) => {
+        const li = document.createElement("li");
+        li.className = "ss-option" +
+          (!o.value ? " ss-placeholder" : "") +
+          (o.value === cur ? " ss-selected" : "");
+        li.setAttribute("role", "option");
+        li.setAttribute("aria-selected", String(o.value === cur));
+        li.textContent = o.text;
+        li.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          this._pick(o.value);
+        });
+        this._list.appendChild(li);
+      });
+  }
+
+  _pick(value) {
+    this._sel.value = value;
+    this._sel.dispatchEvent(new Event("change", { bubbles: true }));
+    this._syncLabel();
+    this._close();
+  }
+
+  _syncLabel() {
+    const cur = Array.from(this._sel.options).find((o) => o.value === this._sel.value);
+    const placeholder = this._sel.options[0]?.text || "Select…";
+    if (cur && cur.value) {
+      this._btn.textContent = cur.text;
+      this._btn.classList.add("ss-has-value");
+    } else {
+      this._btn.textContent = placeholder;
+      this._btn.classList.remove("ss-has-value");
+    }
+  }
+
+  // Called after options are rebuilt (e.g. after loadAdminData cascade)
+  refresh() { this._syncLabel(); }
+}
+
 function show(el) { el && el.classList.remove("hidden"); }
 function hide(el) { el && el.classList.add("hidden"); }
 
@@ -386,24 +502,33 @@ qs("#testimonialForm").addEventListener("submit", async (e) => {
 });
 
 // ── Admin panel ───────────────────────────────────────────
+// SearchSelect instances — keyed by native select id so we can call .refresh()
+const _ss = {};
+
+function ssGet(id) {
+  if (!_ss[id]) _ss[id] = new SearchSelect(qs(`#${id}`));
+  return _ss[id];
+}
+
 async function loadAdminData() {
   const { ok, data } = await api("GET", "/api/admin/courses");
   if (!ok) return;
   const courses = data.courses || [];
 
-  // Populate all course dropdowns
-  const selectors = [
-    "#adminEnrollCourse",
-    "#adminRevokeCourse",
-    "#adminChapterCourse",
-    "#adminEditChapterCourse",
-    "#adminVideoCourse",
-    "#adminEditVideoCourse"
+  // Populate all course dropdowns and attach SearchSelect
+  const courseSelIds = [
+    "adminEnrollCourse",
+    "adminRevokeCourse",
+    "adminChapterCourse",
+    "adminEditChapterCourse",
+    "adminVideoCourse",
+    "adminEditVideoCourse"
   ];
-  selectors.forEach((sel) => {
-    const el = qs(sel);
+  courseSelIds.forEach((id) => {
+    const el = qs(`#${id}`);
     el.innerHTML = '<option value="">Select course…</option>' +
       courses.map((c) => `<option value="${c.id}">${c.title}</option>`).join("");
+    ssGet(id).refresh();
   });
 
   // Enroll: load non-enrolled users when course changes, clear stale message
@@ -411,54 +536,70 @@ async function loadAdminData() {
     qs("#adminEnrollMessage").textContent = "";
     const courseId = this.value;
     const userSel  = qs("#adminEnrollUser");
-    if (!courseId) { userSel.innerHTML = '<option value="">Select course first…</option>'; return; }
+    if (!courseId) {
+      userSel.innerHTML = '<option value="">Select course first…</option>';
+      ssGet("adminEnrollUser").refresh();
+      return;
+    }
     const { ok, data } = await api("GET", `/api/admin/users?excludeEnrolled=${courseId}`);
     if (!ok) return;
     userSel.innerHTML = '<option value="">Select user…</option>' +
       (data.users || []).map((u) => `<option value="${u.id}">${u.name} (${u.email})</option>`).join("");
+    ssGet("adminEnrollUser").refresh();
   });
   qs("#adminEnrollUser").addEventListener("change", () => {
     qs("#adminEnrollMessage").textContent = "";
   });
+  ssGet("adminEnrollUser");   // init early so it wraps the empty placeholder
 
   // Revoke: load enrolled users when course changes, clear stale message
   qs("#adminRevokeCourse").addEventListener("change", async function () {
     qs("#adminRevokeMessage").textContent = "";
     const courseId = this.value;
     const userSel  = qs("#adminRevokeUser");
-    if (!courseId) { userSel.innerHTML = '<option value="">Select course first…</option>'; return; }
+    if (!courseId) {
+      userSel.innerHTML = '<option value="">Select course first…</option>';
+      ssGet("adminRevokeUser").refresh();
+      return;
+    }
     const { ok, data } = await api("GET", `/api/admin/enrollments?courseId=${courseId}`);
     if (!ok) return;
     userSel.innerHTML = '<option value="">Select enrolled user…</option>' +
       (data.enrollments || []).map((u) => `<option value="${u.userId}">${u.name} (${u.email})</option>`).join("");
+    ssGet("adminRevokeUser").refresh();
   });
   qs("#adminRevokeUser").addEventListener("change", () => {
     qs("#adminRevokeMessage").textContent = "";
   });
+  ssGet("adminRevokeUser");   // init early
 
   // Chapter selectors for video actions
   function bindChapterSelect(courseSelId, chapterSelId) {
-    qs(courseSelId).addEventListener("change", function () {
+    qs(`#${courseSelId}`).addEventListener("change", function () {
       const course = courses.find((c) => c.id === this.value);
-      const chSel  = qs(chapterSelId);
+      const chSel  = qs(`#${chapterSelId}`);
       chSel.innerHTML = '<option value="">Select chapter…</option>' +
         (course ? course.chapters : []).map((ch) => `<option value="${ch.id}">${ch.title}</option>`).join("");
+      ssGet(chapterSelId).refresh();
     });
+    ssGet(chapterSelId);  // init early
   }
-  bindChapterSelect("#adminVideoCourse",      "#adminVideoChapter");
-  bindChapterSelect("#adminEditChapterCourse","#adminEditChapterSelect");
-  bindChapterSelect("#adminEditVideoCourse",  "#adminEditVideoChapter");
+  bindChapterSelect("adminVideoCourse",       "adminVideoChapter");
+  bindChapterSelect("adminEditChapterCourse", "adminEditChapterSelect");
+  bindChapterSelect("adminEditVideoCourse",   "adminEditVideoChapter");
 
   // Video select when chapter changes
   qs("#adminEditVideoChapter").addEventListener("change", function () {
-    const courseId   = qs("#adminEditVideoCourse").value;
-    const course     = courses.find((c) => c.id === courseId);
-    const chapterId  = this.value;
-    const chapter    = (course?.chapters || []).find((ch) => ch.id === chapterId);
-    const vidSel     = qs("#adminEditVideoSelect");
+    const courseId  = qs("#adminEditVideoCourse").value;
+    const course    = courses.find((c) => c.id === courseId);
+    const chapterId = this.value;
+    const chapter   = (course?.chapters || []).find((ch) => ch.id === chapterId);
+    const vidSel    = qs("#adminEditVideoSelect");
     vidSel.innerHTML = '<option value="">Select video…</option>' +
       (chapter?.videos || []).map((v) => `<option value="${v.id}">${v.title}</option>`).join("");
+    ssGet("adminEditVideoSelect").refresh();
   });
+  ssGet("adminEditVideoSelect");  // init early
 }
 
 // Admin: Enroll
