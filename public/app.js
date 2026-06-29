@@ -15,7 +15,13 @@ async function api(method, path, body) {
     headers: { "Content-Type": "application/json" }
   };
   if (body !== undefined) opts.body = JSON.stringify(body);
-  const res = await fetch(path, opts);
+  let res;
+  try {
+    res = await fetch(path, opts);
+  } catch {
+    // Network failure (offline, DNS error, server unreachable)
+    return { ok: false, status: 0, data: { error: "No internet connection. Please check your network and try again." } };
+  }
   const data = await res.json().catch(() => ({}));
   return { ok: res.ok, status: res.status, data };
 }
@@ -66,9 +72,15 @@ qsa(".show-password-toggle").forEach((chk) => {
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   loginMsg.textContent = "";
+  const btn = loginForm.querySelector("button[type=submit]");
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Signing in…";
   const email    = loginForm.email.value.trim();
   const password = loginForm.password.value.trim();
   const { ok, data } = await api("POST", "/api/login", { email, password });
+  btn.disabled = false;
+  btn.textContent = orig;
   if (ok) {
     currentUser = data.user;
     enterApp();
@@ -80,11 +92,17 @@ loginForm.addEventListener("submit", async (e) => {
 signupForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   signupMsg.textContent = "";
+  const btn = signupForm.querySelector("button[type=submit]");
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Creating account…";
   const name     = signupForm.name.value.trim();
   const email    = signupForm.email.value.trim();
   const mobile   = signupForm.mobile.value.trim();
   const password = signupForm.password.value.trim();
   const { ok, data } = await api("POST", "/api/register", { name, email, mobile, password });
+  btn.disabled = false;
+  btn.textContent = orig;
   if (ok) {
     currentUser = data.user;
     enterApp();
