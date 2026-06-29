@@ -22,7 +22,9 @@ async function api(method, path, body) {
     // Network failure (offline, DNS error, server unreachable)
     return { ok: false, status: 0, data: { error: "No internet connection. Please check your network and try again." } };
   }
-  const data = await res.json().catch(() => ({}));
+  const data = await res.json().catch(() => ({
+    error: res.ok ? "Unexpected server response." : `Server error (${res.status}).`
+  }));
   return { ok: res.ok, status: res.status, data };
 }
 
