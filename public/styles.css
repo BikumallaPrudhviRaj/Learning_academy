@@ -1090,6 +1090,156 @@ input:focus, textarea:focus {
 }
 .confirm-cancel-btn:hover { background: var(--bg); }
 
+/* WhatsApp link inside login/signup cards */
+.login-card .hint {
+  margin-bottom: 0;
+}
+.card-wa-divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 18px 0 14px;
+}
+.card-wa-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #128c49 !important;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.card-wa-link:hover { text-decoration: underline; }
+.card-wa-link svg { flex-shrink: 0; fill: #128c49; }
+
+.card-insta-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #7c3aed;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 8px;
+}
+.card-insta-link:hover { text-decoration: underline; }
+.card-insta-link svg { flex-shrink: 0; }
+
+/* WhatsApp button inside the Contact section */
+.contact-wa-row {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow-sm);
+}
+.contact-wa-row dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.wa-contact-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+.wa-contact-btn:hover { text-decoration: underline; }
+
+/* WhatsApp inline link (payment note) */
+.wa-inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #128c49;
+  font-weight: 700;
+  text-decoration: none;
+}
+.wa-inline-link:hover { text-decoration: underline; }
+
+/* ══════════════════════════════════════════════════════════
+   INSTAGRAM CTA BANNER (below testimonials)
+══════════════════════════════════════════════════════════ */
+.insta-cta {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 28px;
+  padding: 20px 22px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.insta-cta-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.insta-cta-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.insta-cta-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+.insta-cta-sub {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+.insta-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c13584;
+  text-decoration: none;
+}
+.insta-cta-btn:hover { text-decoration: underline; }
+
+/* Instagram button inside Contact section */
+.contact-insta-row {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow-sm);
+}
+.contact-insta-row dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.insta-contact-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+.insta-contact-btn:hover { text-decoration: underline; }
+
 /* ══════════════════════════════════════════════════════════
    CHATBOT WIDGET
 ══════════════════════════════════════════════════════════ */
