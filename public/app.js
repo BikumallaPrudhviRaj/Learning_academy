@@ -590,6 +590,18 @@ async function loadAdminData() {
   });
   ssGet("adminRevokeUser");   // init early
 
+  // Delete user: load all users
+  const deleteUserSel = qs("#adminDeleteUser");
+  const { ok: usersOk, data: usersData } = await api("GET", "/api/admin/users");
+  if (usersOk) {
+    deleteUserSel.innerHTML = '<option value="">Select user…</option>' +
+      (usersData.users || []).map((u) => `<option value="${u.id}">${u.name} (${u.email})</option>`).join("");
+  }
+  ssGet("adminDeleteUser");
+  deleteUserSel.addEventListener("change", () => {
+    qs("#adminDeleteUserMessage").textContent = "";
+  });
+
   // Chapter selectors for video actions
   function bindChapterSelect(courseSelId, chapterSelId) {
     qs(`#${courseSelId}`).addEventListener("change", function () {
@@ -625,10 +637,15 @@ qs("#adminEnrollBtn").addEventListener("click", async () => {
   const courseId = qs("#adminEnrollCourse").value;
   const userId   = qs("#adminEnrollUser").value;
   if (!courseId || !userId) { msg.textContent = "Select both course and user."; return; }
-  const { ok, data } = await api("POST", "/api/admin/enrollments", { courseId, userId });
-  msg.style.color = ok ? "var(--green)" : "var(--red)";
-  msg.textContent = data.message || data.error || "";
-  if (ok) loadCatalog();
+  showConfirm("Enroll this user as paid for the selected course?", async () => {
+    const { ok, data } = await api("POST", "/api/admin/enrollments", { courseId, userId });
+    msg.style.color = ok ? "var(--green)" : "var(--red)";
+    msg.textContent = data.message || data.error || "";
+    if (ok) {
+      await loadCatalog();
+      await loadAdminData();
+    }
+  });
 });
 
 // Admin: Revoke
@@ -648,16 +665,39 @@ qs("#adminRevokeBtn").addEventListener("click", () => {
   });
 });
 
+// Admin: Delete user
+qs("#adminDeleteUserBtn").addEventListener("click", () => {
+  const userId = qs("#adminDeleteUser").value;
+  const msg = qs("#adminDeleteUserMessage");
+  if (!userId) {
+    msg.textContent = "Select a user.";
+    return;
+  }
+  showConfirm("Delete this user and all of their paid enrollments?", async () => {
+    const { ok, data } = await api("DELETE", `/api/admin/users/${userId}`);
+    msg.style.color = ok ? "var(--green)" : "var(--red)";
+    msg.textContent = data.message || data.error || "";
+    if (ok) {
+      qs("#adminDeleteUser").value = "";
+      ssGet("adminDeleteUser").refresh();
+      await loadCatalog();
+      await loadAdminData();
+    }
+  });
+});
+
 // Admin: Add chapter
 qs("#adminAddChapterBtn").addEventListener("click", async () => {
   const msg      = qs("#adminChapterMessage");
   const courseId = qs("#adminChapterCourse").value;
   const title    = qs("#adminChapterTitle").value.trim();
   if (!courseId || !title) { msg.textContent = "Select course and enter title."; return; }
-  const { ok, data } = await api("POST", `/api/admin/courses/${courseId}/chapters`, { title });
-  msg.style.color = ok ? "var(--green)" : "var(--red)";
-  msg.textContent = ok ? "Chapter added." : (data.error || "Error");
-  if (ok) { qs("#adminChapterTitle").value = ""; loadAdminData(); }
+  showConfirm("Add this chapter to the selected course?", async () => {
+    const { ok, data } = await api("POST", `/api/admin/courses/${courseId}/chapters`, { title });
+    msg.style.color = ok ? "var(--green)" : "var(--red)";
+    msg.textContent = ok ? "Chapter added." : (data.error || "Error");
+    if (ok) { qs("#adminChapterTitle").value = ""; await loadAdminData(); }
+  });
 });
 
 // Admin: Rename chapter
@@ -667,10 +707,15 @@ qs("#adminRenameChapterBtn").addEventListener("click", async () => {
   const chapterId = qs("#adminEditChapterSelect").value;
   const title     = qs("#adminEditChapterTitle").value.trim();
   if (!courseId || !chapterId || !title) { msg.textContent = "Select course, chapter, and enter new title."; return; }
-  const { ok, data } = await api("PATCH", `/api/admin/courses/${courseId}/chapters/${chapterId}`, { title });
-  msg.style.color = ok ? "var(--green)" : "var(--red)";
-  msg.textContent = ok ? "Chapter renamed." : (data.error || "Error");
-  if (ok) loadAdminData();
+  showConfirm("Rename this chapter?", async () => {
+    const { ok, data } = await api("PATCH", `/api/admin/courses/${courseId}/chapters/${chapterId}`, { title });
+    msg.style.color = ok ? "var(--green)" : "var(--red)";
+    msg.textContent = ok ? "Chapter renamed." : (data.error || "Error");
+    if (ok) {
+      qs("#adminEditChapterTitle").value = "";
+      await loadAdminData();
+    }
+  });
 });
 
 // Admin: Delete chapter
@@ -695,10 +740,12 @@ qs("#adminAddVideoBtn").addEventListener("click", async () => {
   const title     = qs("#adminVideoTitle").value.trim();
   const url       = qs("#adminVideoUrl").value.trim();
   if (!courseId || !chapterId || !title || !url) { msg.textContent = "All fields are required."; return; }
-  const { ok, data } = await api("POST", `/api/admin/courses/${courseId}/chapters/${chapterId}/videos`, { title, url });
-  msg.style.color = ok ? "var(--green)" : "var(--red)";
-  msg.textContent = ok ? "Video added." : (data.error || "Error");
-  if (ok) { qs("#adminVideoTitle").value = ""; qs("#adminVideoUrl").value = ""; loadAdminData(); }
+  showConfirm("Add this video to the selected chapter?", async () => {
+    const { ok, data } = await api("POST", `/api/admin/courses/${courseId}/chapters/${chapterId}/videos`, { title, url });
+    msg.style.color = ok ? "var(--green)" : "var(--red)";
+    msg.textContent = ok ? "Video added." : (data.error || "Error");
+    if (ok) { qs("#adminVideoTitle").value = ""; qs("#adminVideoUrl").value = ""; await loadAdminData(); }
+  });
 });
 
 // Admin: Save video changes
@@ -714,10 +761,12 @@ qs("#adminRenameVideoBtn").addEventListener("click", async () => {
   const body = {};
   if (title) body.title = title;
   if (url)   body.url   = url;
-  const { ok, data } = await api("PATCH", `/api/admin/courses/${courseId}/chapters/${chapterId}/videos/${videoId}`, body);
-  msg.style.color = ok ? "var(--green)" : "var(--red)";
-  msg.textContent = ok ? "Video updated." : (data.error || "Error");
-  if (ok) { qs("#adminEditVideoTitle").value = ""; qs("#adminEditVideoUrl").value = ""; loadAdminData(); }
+  showConfirm("Save changes to this video?", async () => {
+    const { ok, data } = await api("PATCH", `/api/admin/courses/${courseId}/chapters/${chapterId}/videos/${videoId}`, body);
+    msg.style.color = ok ? "var(--green)" : "var(--red)";
+    msg.textContent = ok ? "Video updated." : (data.error || "Error");
+    if (ok) { qs("#adminEditVideoTitle").value = ""; qs("#adminEditVideoUrl").value = ""; await loadAdminData(); }
+  });
 });
 
 // Admin: Delete video

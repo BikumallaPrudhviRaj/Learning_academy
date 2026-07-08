@@ -713,6 +713,21 @@ RESPONSE RULES:
     return;
   }
 
+  // Admin: delete a user and all paid enrollments
+  const adminUserMatch = pathname.match(/^\/api\/admin\/users\/([^/]+)$/);
+  if (isAdmin(user) && req.method === "DELETE" && adminUserMatch) {
+    const [, userId] = adminUserMatch;
+    const targetUser = await db.collection("users").findOne({ id: userId });
+    if (!targetUser) {
+      sendJson(res, 404, { error: "User not found" });
+      return;
+    }
+    await db.collection("paidEnrollments").deleteMany({ userId });
+    await db.collection("users").deleteOne({ id: userId });
+    sendJson(res, 200, { ok: true, message: `${targetUser.name} deleted successfully` });
+    return;
+  }
+
   // Admin: get all courses with chapters and videos (for admin panel)
   if (isAdmin(user) && req.method === "GET" && pathname === "/api/admin/courses") {
     const courses = await db.collection("courses").find({}).toArray();
