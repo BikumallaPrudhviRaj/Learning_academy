@@ -114,7 +114,14 @@
                   <p id="dropdownMobile" class="dropdown-mobile hidden"></p>
                 </div>
                 <div class="user-dropdown-actions">
-                  <button id="logoutButton" class="dropdown-logout" type="button">Sign out</button>
+                  <button id="viewProfileButton" class="dropdown-action-btn" type="button">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    View Profile
+                  </button>
+                  <button id="logoutButton" class="dropdown-logout" type="button">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    Sign out
+                  </button>
                 </div>
               </div>
             </div>
@@ -124,6 +131,7 @@
         <nav class="tabs" aria-label="Portal navigation">
           <button id="catalogTab" class="tab-button active" type="button">Courses</button>
           <button id="adminTab" class="tab-button hidden" type="button">Admin</button>
+          <button id="analyticsTab" class="tab-button hidden" type="button">Analytics</button>
         </nav>
 
         <section id="catalogView">
@@ -186,6 +194,28 @@
         </section>
 
         <section id="courseDetailView" class="hidden"></section>
+        <section id="videoPlayerView" class="hidden"></section>
+
+        <!-- Quiz overlay — shown on top of video player -->
+        <div id="quizOverlay" class="quiz-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="quizTitle">
+          <div class="quiz-panel">
+            <div class="quiz-header">
+              <div>
+                <p class="quiz-eyebrow">AI Quiz</p>
+                <h2 class="quiz-title" id="quizTitle">Knowledge Check</h2>
+              </div>
+              <button class="quiz-close-btn" id="quizCloseBtn" type="button" aria-label="Close quiz">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div id="quizBody" class="quiz-body"></div>
+          </div>
+        </div>
+        <section id="analyticsView" class="hidden">
+          <div id="analyticsInner" class="analytics-wrap">
+            <p style="padding:20px;color:var(--muted)">Loading analytics…</p>
+          </div>
+        </section>
 
         <section id="adminView" class="hidden">
           <div class="admin-view-inner">
@@ -306,6 +336,50 @@
               <p id="adminEditChapterMessage" class="message"></p>
             </div>
 
+            <!-- Reorder Chapters -->
+            <div class="admin-card">
+              <h3>Reorder Chapters</h3>
+              <p class="hint">Drag rows or use ↑ ↓ buttons to set the correct order, then save.</p>
+              <div class="admin-rows">
+                <div class="admin-row">
+                  <label class="admin-label">Course</label>
+                  <select id="adminReorderCourse" class="admin-select">
+                    <option value="">Select course…</option>
+                  </select>
+                </div>
+              </div>
+              <div id="adminReorderList" class="reorder-list"></div>
+              <div class="admin-row admin-row-actions" style="padding-left:0;margin-top:12px">
+                <button id="adminSaveOrderBtn" class="admin-action-btn hidden" type="button">Save Order</button>
+              </div>
+              <p id="adminReorderMessage" class="message"></p>
+            </div>
+
+            <!-- Reorder Lessons -->
+            <div class="admin-card">
+              <h3>Reorder Lessons</h3>
+              <p class="hint">Select a course and chapter, then drag or use ↑ ↓ to reorder lessons.</p>
+              <div class="admin-rows">
+                <div class="admin-row">
+                  <label class="admin-label">Course</label>
+                  <select id="adminReorderLessonCourse" class="admin-select">
+                    <option value="">Select course…</option>
+                  </select>
+                </div>
+                <div class="admin-row">
+                  <label class="admin-label">Chapter</label>
+                  <select id="adminReorderLessonChapter" class="admin-select">
+                    <option value="">Select course first…</option>
+                  </select>
+                </div>
+              </div>
+              <div id="adminReorderLessonList" class="reorder-list"></div>
+              <div class="admin-row admin-row-actions" style="padding-left:0;margin-top:12px">
+                <button id="adminSaveLessonOrderBtn" class="admin-action-btn hidden" type="button">Save Order</button>
+              </div>
+              <p id="adminReorderLessonMessage" class="message"></p>
+            </div>
+
             <!-- Add Video -->
             <div class="admin-card">
               <h3>Add Video to Chapter</h3>
@@ -408,6 +482,76 @@
           <button id="chatSendBtn" class="chat-send-btn" type="button" aria-label="Send">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile modal -->
+    <div id="profileOverlay" class="profile-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+      <div class="profile-modal">
+        <div class="profile-modal-header">
+          <h2 id="profileModalTitle">My Profile</h2>
+          <button id="profileCloseBtn" class="profile-close-btn" type="button" aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="profile-modal-body">
+          <!-- Avatar + info -->
+          <div class="profile-avatar-row">
+            <div class="profile-avatar">
+              <span id="profileInitials"></span>
+            </div>
+            <div>
+              <p id="profileName" class="profile-display-name"></p>
+              <p id="profileEmail" class="profile-display-email"></p>
+            </div>
+          </div>
+
+          <!-- Info fields -->
+          <div class="profile-info-grid">
+            <div class="profile-info-item">
+              <span class="profile-info-label">Full Name</span>
+              <span id="profileInfoName" class="profile-info-value"></span>
+            </div>
+            <div class="profile-info-item">
+              <span class="profile-info-label">Email</span>
+              <span id="profileInfoEmail" class="profile-info-value"></span>
+            </div>
+            <div class="profile-info-item">
+              <span class="profile-info-label">Mobile</span>
+              <span id="profileInfoMobile" class="profile-info-value"></span>
+            </div>
+            <div class="profile-info-item">
+              <span class="profile-info-label">Role</span>
+              <span id="profileInfoRole" class="profile-info-value"></span>
+            </div>
+          </div>
+
+          <hr class="profile-divider">
+
+          <!-- Change password -->
+          <h3 class="profile-section-title">Change Password</h3>
+          <form id="changePasswordForm" class="profile-form" novalidate>
+            <label>
+              Current Password
+              <input id="cpCurrent" name="currentPassword" type="password" autocomplete="current-password" required placeholder="Enter your current password">
+            </label>
+            <label>
+              New Password
+              <input id="cpNew" name="newPassword" type="password" autocomplete="new-password" required minlength="6" placeholder="At least 6 characters">
+            </label>
+            <label>
+              Confirm New Password
+              <input id="cpConfirm" name="confirmPassword" type="password" autocomplete="new-password" required minlength="6" placeholder="Repeat new password">
+            </label>
+            <label class="show-password-checkbox">
+              <input type="checkbox" class="show-password-toggle">
+              <span>Show passwords</span>
+            </label>
+            <button type="submit" class="profile-save-btn">Update Password</button>
+            <p id="changePasswordMessage" class="message" role="status"></p>
+          </form>
         </div>
       </div>
     </div>

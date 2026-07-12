@@ -177,10 +177,12 @@ function formatPrice(amount) {
 function courseForClient(course, paid) {
   const finalPrice = course.price;
   const originalPrice = course.originalPrice;
+  const totalVideos = (course.chapters || []).reduce((sum, ch) => sum + (ch.videos || []).length, 0);
 
   return {
     ...course,
     paid,
+    totalVideos,
     originalPriceLabel: originalPrice ? formatPrice(originalPrice) : null,
     priceLabel: `${formatPrice(finalPrice)} Incl GST`,
     hasDiscount: originalPrice && originalPrice > finalPrice
@@ -402,128 +404,77 @@ async function handleApi(req, res, pathname) {
       return;
     }
 
-    // Fetch live course data from DB to keep context current
+    // Determine who is asking — guest/free users get academy-only mode
+    const chatUser = await getCurrentUser(req);
+    let isPaidUser = false;
+    if (chatUser) {
+      const paidEnrolments = await db.collection("paidEnrollments").find({ userId: chatUser.id, paid: true }).toArray();
+      isPaidUser = paidEnrolments.length > 0 || isAdmin(chatUser);
+    }
+
+    // Fetch live academy data (needed for both prompt variants)
     const courses = await db.collection("courses").find({}).toArray();
     const contact = await db.collection("contact").findOne({});
-    const courseContext = courses.map((c) => `
-Course: ${c.title}
-Level: ${c.level}
-Duration: ${c.duration}
-Price: Rs. ${c.price} Incl GST
-Chapters: ${(c.chapters || []).map((ch) => ch.title).join(", ")}
-Outcomes: ${(c.outcomes || []).join(", ")}
-Eligible: ${(c.eligible || []).join(", ")}
-    `.trim()).join("\n\n");
 
-    const systemPrompt = `You are the AI assistant for Up 'N' Rise Learning Academy, an online education institute based in Hyderabad, Telangana, India.
+    // Compact course list — title, price, duration, chapter count only
+    const courseLines = courses.map((c) =>
+      `• ${c.title} | ${c.level} | ${c.duration} | Rs. ${c.price} Incl GST | ${(c.chapters || []).length} chapters`
+    ).join("\n");
 
-You have exactly two areas of expertise:
+    const academy = contact?.academy || "Up 'N' Rise Learning Academy";
+    const mobile  = contact?.mobile  || "+91 7893146211";
+    const email   = contact?.email   || "upnriseacademy@gmail.com";
+    const address = contact?.address || "Hyderabad, Telangana";
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EXPERTISE 1: ORACLE FUSION HCM EXPERT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-You are a deep Techno-Functional expert on Oracle Fusion HCM (Human Capital Management) covering all modules:
+    // ── GUEST / FREE USER prompt — academy info only (~200 tokens) ──
+    const guestPrompt = `You are the AI assistant for ${academy}, an Oracle HCM training institute in ${address}.
 
-CORE HR (Global Human Resources):
-- Enterprise Structures: Business Units, Legal Entities, Reference Data Sets, Legislative Data Groups (LDG), Location, Department, Job, Position hierarchies
-- Person Model: Worker types (Employee, Contingent Worker), Person records, Employment records, Assignments
-- Actions & Action Reasons: Hire, Transfer, Promotion, Termination, Global Transfer
-- Work Relationships, Assignment status, Progression
-- HR Sequences, Person Number generation methods
-- Fast Formulas: syntax, contexts, database items, calling formulas
-- HCM Data Loader (HDL): file structure, object groups, load sequences, error handling
-- HCM Extracts: filter criteria, extract definitions, delivery options
-- OTBI & BI Publisher: subject areas, report creation, bursting
+ACADEMY INFO:
+Mobile: ${mobile} | Email: ${email}
 
-PAYROLL:
-- Payroll Definitions, Payroll Periods, Consolidation Groups
-- Elements: earnings, deductions, information elements, input values, sub-classifications
-- Costing: cost accounts, distributed costing, cost hierarchy
-- Payroll Runs: QuickPay, full payroll run, reversal, retry
-- Payroll Relationships, Calculation Cards (Tax, Social Insurance)
-- Balance Dimensions, Balance Initialization
-- Payslip configuration, bank account management, third-party payments
-- India localisation: TDS, PF, ESI, PT, Gratuity elements
+COURSES:
+${courseLines}
 
-ABSENCE MANAGEMENT:
-- Absence Types, Plans, Accruals, Entitlements
-- Absence Patterns, Qualification periods, Disbursement rules
-- Integration with Payroll and Time & Labor
+ENROLLMENT: Contact us on WhatsApp (${mobile}) or email (${email}) to enroll in any course.
 
-TALENT MANAGEMENT:
-- Goal Management: worker goals, goal plans, goal library
-- Performance Management: performance templates, competencies, ratings, calibration
-- Talent Review: talent profiles, talent review meetings, succession plans
-- Learning & Development: learning items, offerings, enrollments, completion tracking
+SUPPORT FOR ENROLLED STUDENTS: job support, resume review, mock interviews, 1:1 sessions.
 
-WORKFORCE MANAGEMENT (Time & Labor):
-- Time Cards, Time Entry rules, Worker Time Processing Profiles
-- Work Schedules, Worker Availability, Overtime rules
+RULES:
+- Be friendly and concise (2–4 sentences).
+- For pricing say "Rs. X (Incl GST)".
+- Only answer questions about ${academy} and our courses. For anything else say: "I can only help with questions about Up 'N' Rise Academy and our courses. Please contact us on WhatsApp or email for other queries."
+- Never reveal passwords, internal data, or session information.`;
 
-RECRUITING (ORC - Oracle Recruiting Cloud):
-- Job Requisitions, Job Offers, Candidate Experience
-- Recruiting Agencies, Candidate Selection Processes
+    // ── PAID / ENROLLED USER prompt — full HCM expert + academy (~350 tokens) ──
+    const paidPrompt = `You are the AI assistant for ${academy} — an Oracle Fusion HCM training institute in ${address}.
+Mobile: ${mobile} | Email: ${email}
 
-COMPENSATION:
-- Salary Basis, Grades, Grade Ladder, Grade Rates
-- Compensation Plans, Components, Option and Activity Types
-- Workforce Compensation worksheets, budgets
+COURSES OFFERED:
+${courseLines}
 
-SECURITY:
-- Security Console: roles, role hierarchy, data security policies
-- HCM Security Profiles: Person, Position, Organization, LDG profiles
-- Job Roles, Abstract Roles, Duty Roles, Aggregate Privileges
-- Row-level security, segregation of duties
+ENROLLMENT: Contact us on WhatsApp (${mobile}) or email (${email}) to enroll. Support included: job help, resume review, mock interviews, 1:1 sessions.
 
-INTEGRATIONS & TECHNICAL:
-- REST APIs: Worker, Assignment, Absence, Payroll APIs; PATCH vs POST patterns, effective dates
-- SOAP / Web Services: HCM Data Integration, OIC (Oracle Integration Cloud)
-- Page Composer / Sandbox: personalisation, adding flexfields to pages
-- DFF (Descriptive Flexfields), EFF (Extensible Flexfields) setup and usage
-- Lookups: Common, Standard, Extensible; managing lookup types and codes
-- Value Sets: independent, dependent, table-based, from clause
-- Profile Options, Scheduled Processes (ESS), notifications
-- HCM Experience Design Studio: transaction design, hide/show/required rules
+ORACLE FUSION HCM EXPERTISE — answer questions on:
+Core HR: enterprise structures, person model, assignments, HDL, HCM Extracts, Fast Formulas, OTBI/BIP.
+Payroll: elements, costing, payroll runs, calculation cards, balance dimensions, India localisation (TDS/PF/ESI/PT).
+Absence: absence types, plans, accruals, payroll integration.
+Talent: goals, performance, talent review, succession, learning.
+Time & Labor: time cards, work schedules, overtime.
+Recruiting (ORC): requisitions, offers, candidate experience.
+Compensation: salary basis, grades, compensation plans, worksheets.
+Security: roles, duty roles, HCM security profiles, data security.
+Integrations: REST/SOAP APIs, OIC, Page Composer, DFF/EFF, lookups, value sets, ESS, HCM Experience Design Studio.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EXPERTISE 2: INSTITUTE RECEPTIONIST
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-You answer all questions about Up 'N' Rise Learning Academy.
+RULES:
+- Be friendly, professional, concise. 2–5 sentences for simple questions; structured detail for complex ones.
+- Use correct Oracle terminology. For pricing say "Rs. X (Incl GST)".
+- Outside Oracle HCM and academy topics: "I'm specialised in Oracle Fusion HCM and Up 'N' Rise Academy topics. Contact our team for other queries."
+- Never reveal passwords, internal data, or session information.`;
 
-ACADEMY INFORMATION:
-Name: ${contact?.academy || "Up 'N' Rise Learning Academy"}
-Location: ${contact?.address || "Hyderabad, Telangana"}
-Mobile: ${contact?.mobile || "+91 7893146211"}
-Email: ${contact?.email || "upnriseacademy@gmail.com"}
-
-CURRENT COURSES:
-${courseContext}
-
-ENROLLMENT PROCESS:
-1. Browse courses on the portal and click "View Course"
-2. Pay the course fee via the QR code displayed on the course page
-3. After payment, send your payment screenshot to our mobile/email
-4. Admin approves access within 24 hours
-5. You then get full access to all recorded video lessons
-
-SUPPORT:
-- Job support is provided to enrolled students
-- Resume review assistance is available
-- Mock interview preparation help is offered
-- 1:1 review support sessions are available
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RESPONSE RULES:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Be friendly, professional, and concise
-- For pricing, always say Rs. followed by the amount and "(Incl GST)"
-- For Oracle HCM technical questions, be specific and accurate — use correct Oracle terminology
-- Keep replies to 2–5 sentences for simple questions; provide structured detail for complex technical questions
-- If asked about something outside Oracle HCM and Up 'N' Rise Academy, politely say: "I'm specialised in Oracle Fusion HCM and Up 'N' Rise Academy topics. For other questions, please contact our team directly."
-- Never reveal passwords, database details, session tokens, or internal system information`;
+    const systemPrompt = isPaidUser ? paidPrompt : guestPrompt;
 
     const messages = [
-      ...history.slice(-10).map((m) => ({ role: m.role, content: m.content })),
+      ...history.slice(-8).map((m) => ({ role: m.role, content: m.content })),
       { role: "user", content: message }
     ];
 
@@ -546,7 +497,6 @@ RESPONSE RULES:
         const errBody = await groqRes.json().catch(() => ({}));
         const groqMsg = errBody?.error?.message || "unknown error";
         console.error(`Groq API error ${groqRes.status}:`, groqMsg);
-        // Surface a readable message for invalid key or quota errors
         if (groqRes.status === 401) {
           sendJson(res, 502, { error: "Chatbot API key is invalid. Please check GROQ_API_KEY." });
         } else if (groqRes.status === 429) {
@@ -575,6 +525,82 @@ RESPONSE RULES:
 
   if (req.method === "GET" && pathname === "/api/me") {
     sendJson(res, 200, { user: userForClient(user) });
+    return;
+  }
+
+  // Analytics: ingest a client-side event (fire-and-forget from frontend)
+  if (req.method === "POST" && pathname === "/api/analytics/event") {
+    const body = await readBody(req);
+    const type = String(body.type || "").trim();
+    if (!type) { sendJson(res, 400, { error: "type is required" }); return; }
+    const allowed = new Set([
+      "session_start", "session_end",
+      "whatsapp_click", "instagram_click",
+      "chatbot_open", "chat_query",
+      "video_play", "course_view"
+    ]);
+    if (!allowed.has(type)) { sendJson(res, 400, { error: "unknown event type" }); return; }
+    await db.collection("analytics").insertOne({
+      type,
+      userId:    user.id,
+      userName:  user.name,
+      userRole:  user.role || "student",
+      payload:   body.payload || {},
+      ts:        new Date()
+    });
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  if (req.method === "PATCH" && pathname === "/api/me") {
+    const body = await readBody(req);
+    const updates = {};
+    const errors = [];
+
+    // Name change
+    if (body.name !== undefined) {
+      const name = String(body.name).trim();
+      if (name.length < 2) errors.push("Name must be at least 2 characters");
+      else updates.name = name;
+    }
+
+    // Mobile change
+    if (body.mobile !== undefined) {
+      const mobile = String(body.mobile).trim();
+      if (!/^[0-9]{10}$/.test(mobile)) {
+        errors.push("Mobile must be a 10-digit number");
+      } else {
+        const taken = await db.collection("users").findOne({ mobile, id: { $ne: user.id } });
+        if (taken) errors.push("This mobile number is already registered to another account");
+        else updates.mobile = mobile;
+      }
+    }
+
+    // Password change
+    if (body.newPassword !== undefined) {
+      const current = String(body.currentPassword || "");
+      if (user.password !== current) {
+        errors.push("Current password is incorrect");
+      } else {
+        const np = String(body.newPassword).trim();
+        if (np.length < 6) errors.push("New password must be at least 6 characters");
+        else updates.password = np;
+      }
+    }
+
+    if (errors.length) {
+      sendJson(res, 400, { error: errors.join(". ") });
+      return;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      sendJson(res, 400, { error: "Nothing to update" });
+      return;
+    }
+
+    await db.collection("users").updateOne({ id: user.id }, { $set: updates });
+    const updated = await db.collection("users").findOne({ id: user.id });
+    sendJson(res, 200, { ok: true, user: userForClient(updated) });
     return;
   }
 
@@ -746,8 +772,247 @@ RESPONSE RULES:
     return;
   }
 
-  // Admin: rename a chapter
-  const adminChapterEditMatch = pathname.match(/^\/api\/admin\/courses\/([^/]+)\/chapters\/([^/]+)$/);
+  // Admin: analytics dashboard data
+  if (isAdmin(user) && req.method === "GET" && pathname === "/api/admin/analytics") {
+    const now   = new Date();
+    const day7  = new Date(now - 7  * 24 * 60 * 60 * 1000);
+    const day30 = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+    // ── User counts ──────────────────────────────────────
+    const allUsers       = await db.collection("users").find({}).toArray();
+    const paidEnrols     = await db.collection("paidEnrollments").find({ paid: true }).toArray();
+    const paidUserIds    = new Set(paidEnrols.map((e) => e.userId));
+    const totalUsers     = allUsers.length;
+    const paidUsersCount = allUsers.filter((u) => paidUserIds.has(u.id)).length;
+    const freeUsers      = totalUsers - paidUsersCount;
+
+    // Admin users (excluded from student counts)
+    const adminUsers = allUsers.filter((u) => u.role === "admin");
+
+    // ── Recent signups list (last 30 days) ───────────────
+    const recentUsers = allUsers
+      .filter((u) => u.createdAt && new Date(u.createdAt) >= day30)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 20)
+      .map((u) => ({
+        name: u.name,
+        email: u.email,
+        mobile: u.mobile || "",
+        role: u.role || "student",
+        isPaid: paidUserIds.has(u.id),
+        createdAt: u.createdAt
+      }));
+
+    // ── Daily signups (last 30 days) ─────────────────────
+    const signupByDay = {};
+    allUsers
+      .filter((u) => u.createdAt && new Date(u.createdAt) >= day30)
+      .forEach((u) => {
+        const d = u.createdAt.slice(0, 10);
+        signupByDay[d] = (signupByDay[d] || 0) + 1;
+      });
+    const dailySignups = Object.entries(signupByDay)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, count]) => ({ date, count }));
+
+    // ── All paid students table ───────────────────────────
+    const paidStudentList = paidEnrols.map((e) => {
+      const u = allUsers.find((u) => u.id === e.userId);
+      return {
+        name: u?.name || e.name || e.userId,
+        email: u?.email || e.email || "",
+        mobile: u?.mobile || e.mobile || "",
+        courseId: e.courseId,
+        enrolledAt: e.enrolledAt || null
+      };
+    });
+
+    // ── Enrollments per course ────────────────────────────
+    const enrollByCourse = {};
+    paidEnrols.forEach((e) => {
+      enrollByCourse[e.courseId] = (enrollByCourse[e.courseId] || 0) + 1;
+    });
+
+    // ── Progress / videos watched ─────────────────────────
+    const progressDocs  = await db.collection("progress").find({}).toArray();
+    const totalWatched  = progressDocs.reduce((s, d) => s + (d.watched?.length || 0), 0);
+
+    // Videos watched per paid student (top 15)
+    const watchByUser = progressDocs
+      .filter((d) => paidUserIds.has(d.userId))
+      .map((d) => {
+        const u = allUsers.find((u) => u.id === d.userId);
+        return {
+          name: u?.name || d.userId,
+          watched: d.watched?.length || 0,
+          courseId: d.courseId,
+          lastAt: d.lastWatched?.at || null
+        };
+      })
+      .sort((a, b) => b.watched - a.watched)
+      .slice(0, 15);
+
+    // ── Analytics events ─────────────────────────────────
+    const events30 = await db.collection("analytics").find({ ts: { $gte: day30 } }).toArray();
+    const events7  = await db.collection("analytics").find({ ts: { $gte: day7  } }).toArray();
+
+    const countType = (evts, type) => evts.filter((e) => e.type === type).length;
+
+    const waClicks       = countType(events30, "whatsapp_click");
+    const instaClicks    = countType(events30, "instagram_click");
+    const chatbotOpens   = countType(events30, "chatbot_open");
+    const chatQueries    = countType(events30, "chat_query");
+    const videoPlays     = countType(events30, "video_play");
+    const courseViews    = countType(events30, "course_view");
+    const sessionStarts  = countType(events30, "session_start");
+
+    // Unique active users in last 30 days (users who had session_start)
+    const activeUserIds30 = new Set(
+      events30.filter((e) => e.type === "session_start").map((e) => e.userId)
+    );
+    const activeUsers30 = activeUserIds30.size;
+
+    // Unique active users in last 7 days
+    const activeUserIds7 = new Set(
+      events7.filter((e) => e.type === "session_start").map((e) => e.userId)
+    );
+    const activeUsers7 = activeUserIds7.size;
+
+    // Avg session duration (seconds) from session_end events
+    const sessionEnds = events30.filter((e) => e.type === "session_end" && e.payload?.duration);
+    const avgSession  = sessionEnds.length
+      ? Math.round(sessionEnds.reduce((s, e) => s + (e.payload.duration || 0), 0) / sessionEnds.length)
+      : null;
+    const maxSession  = sessionEnds.length
+      ? Math.max(...sessionEnds.map((e) => e.payload.duration || 0))
+      : null;
+
+    // Total time spent across all sessions (minutes)
+    const totalTimeMinutes = sessionEnds.length
+      ? Math.round(sessionEnds.reduce((s, e) => s + (e.payload.duration || 0), 0) / 60)
+      : 0;
+
+    // Per-video play counts (last 30 days, top 10)
+    const videoPlayCounts = {};
+    events30
+      .filter((e) => e.type === "video_play" && e.payload?.videoId)
+      .forEach((e) => {
+        const key = `${e.payload.courseId || ""}|${e.payload.videoId}`;
+        if (!videoPlayCounts[key]) {
+          videoPlayCounts[key] = { videoId: e.payload.videoId, title: e.payload.videoTitle || e.payload.videoId, courseId: e.payload.courseId || "", count: 0 };
+        }
+        videoPlayCounts[key].count++;
+      });
+    const topVideos = Object.values(videoPlayCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // Most viewed courses (last 30 days)
+    const courseViewCounts = {};
+    events30.filter((e) => e.type === "course_view" && e.payload?.courseId).forEach((e) => {
+      const id = e.payload.courseId;
+      if (!courseViewCounts[id]) courseViewCounts[id] = { courseId: id, title: e.payload.courseTitle || id, views: 0 };
+      courseViewCounts[id].views++;
+    });
+    const topCourses = Object.values(courseViewCounts)
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 8);
+
+    // Chat keyword frequency (last 30 days)
+    const stopWords = new Set(["a","an","the","is","it","in","on","to","of","and","or","for","how","what","can","i","my","me","we","be","do","does","did","was","are","has","have","with","this","that","from","at","by","as","so","if","but","not","no","yes","hi","hello","please","tell","give","explain","about","get","use","which","why","who","where","when","its","just","want","need","like","know","also","any","all","some","more","than","then"]);
+    const wordFreq = {};
+    events30
+      .filter((e) => e.type === "chat_query" && e.payload?.query)
+      .forEach((e) => {
+        String(e.payload.query).toLowerCase()
+          .replace(/[^a-z0-9\s]/g, "")
+          .split(/\s+/)
+          .filter((w) => w.length > 2 && !stopWords.has(w))
+          .forEach((w) => { wordFreq[w] = (wordFreq[w] || 0) + 1; });
+      });
+    const topKeywords = Object.entries(wordFreq)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 25)
+      .map(([word, count]) => ({ word, count }));
+
+    // Recent chat queries (last 20, most recent first)
+    const recentChats = events30
+      .filter((e) => e.type === "chat_query" && e.payload?.query)
+      .sort((a, b) => new Date(b.ts) - new Date(a.ts))
+      .slice(0, 20)
+      .map((e) => ({
+        query: e.payload.query,
+        userName: e.userName || "Unknown",
+        ts: e.ts
+      }));
+
+    // Daily event breakdown (last 7 days) — fill all 7 days even with zero data
+    const eventsByDay = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      eventsByDay[d] = { date: d, wa: 0, insta: 0, chat: 0, video: 0, login: 0, courseView: 0 };
+    }
+    events7.forEach((e) => {
+      const d = e.ts.toISOString().slice(0, 10);
+      if (!eventsByDay[d]) return;
+      if (e.type === "whatsapp_click")  eventsByDay[d].wa++;
+      if (e.type === "instagram_click") eventsByDay[d].insta++;
+      if (e.type === "chat_query")      eventsByDay[d].chat++;
+      if (e.type === "video_play")      eventsByDay[d].video++;
+      if (e.type === "session_start")   eventsByDay[d].login++;
+      if (e.type === "course_view")     eventsByDay[d].courseView++;
+    });
+    const dailyEvents = Object.values(eventsByDay).sort((a, b) => a.date.localeCompare(b.date));
+
+    sendJson(res, 200, {
+      users: { totalUsers, paidUsers: paidUsersCount, freeUsers, adminCount: adminUsers.length },
+      activeUsers: { last7: activeUsers7, last30: activeUsers30 },
+      recentSignups: recentUsers,
+      paidStudentList,
+      enrollByCourse,
+      dailySignups,
+      videos: { totalWatched, watchByUser, topVideos },
+      events30: { waClicks, instaClicks, chatbotOpens, chatQueries, videoPlays, courseViews, sessionStarts },
+      sessions: { avgSeconds: avgSession, maxSeconds: maxSession, totalMinutes: totalTimeMinutes },
+      topKeywords,
+      recentChats,
+      dailyEvents,
+      topCourses
+    });
+    return;
+  }
+
+  // Admin: reorder chapters
+  const adminChapterReorderMatch = pathname.match(/^\/api\/admin\/courses\/([^/]+)\/chapters\/reorder$/);
+  if (isAdmin(user) && req.method === "PATCH" && adminChapterReorderMatch) {
+    const courseId = adminChapterReorderMatch[1];
+    const body = await readBody(req);
+    const order = body.order; // expected: array of chapter IDs in desired order
+    if (!Array.isArray(order) || order.length === 0) {
+      sendJson(res, 400, { error: "order must be a non-empty array of chapter IDs" });
+      return;
+    }
+    const course = await db.collection("courses").findOne({ id: courseId });
+    if (!course) { sendJson(res, 404, { error: "Course not found" }); return; }
+    const existing = course.chapters || [];
+    // Build a map for O(1) lookup, then reorder
+    const chapterMap = new Map(existing.map((ch) => [ch.id, ch]));
+    const reordered = order.map((id) => chapterMap.get(id)).filter(Boolean);
+    // Preserve any chapters not in the order array at the end (safety net)
+    const included = new Set(order);
+    for (const ch of existing) {
+      if (!included.has(ch.id)) reordered.push(ch);
+    }
+    await db.collection("courses").updateOne(
+      { id: courseId },
+      { $set: { chapters: reordered } }
+    );
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  // Admin: rename a chapter (explicitly exclude /reorder to avoid ambiguity)
+  const adminChapterEditMatch = pathname.match(/^\/api\/admin\/courses\/([^/]+)\/chapters\/(?!reorder$)([^/]+)$/);
   if (isAdmin(user) && req.method === "PATCH" && adminChapterEditMatch) {
     const [, courseId, chapterId] = adminChapterEditMatch;
     const body = await readBody(req);
@@ -776,8 +1041,38 @@ RESPONSE RULES:
     return;
   }
 
-  // Admin: rename a video
-  const adminVideoEditMatch = pathname.match(/^\/api\/admin\/courses\/([^/]+)\/chapters\/([^/]+)\/videos\/([^/]+)$/);
+  // Admin: reorder videos within a chapter
+  const adminVideoReorderMatch = pathname.match(/^\/api\/admin\/courses\/([^/]+)\/chapters\/([^/]+)\/videos\/reorder$/);
+  if (isAdmin(user) && req.method === "PATCH" && adminVideoReorderMatch) {
+    const [, courseId, chapterId] = adminVideoReorderMatch;
+    const body = await readBody(req);
+    const order = body.order;
+    if (!Array.isArray(order) || order.length === 0) {
+      sendJson(res, 400, { error: "order must be a non-empty array of video IDs" });
+      return;
+    }
+    const course = await db.collection("courses").findOne({ id: courseId });
+    if (!course) { sendJson(res, 404, { error: "Course not found" }); return; }
+    const chapterIndex = (course.chapters || []).findIndex((ch) => ch.id === chapterId);
+    if (chapterIndex === -1) { sendJson(res, 404, { error: "Chapter not found" }); return; }
+    const existing = course.chapters[chapterIndex].videos || [];
+    const videoMap = new Map(existing.map((v) => [v.id, v]));
+    const reordered = order.map((id) => videoMap.get(id)).filter(Boolean);
+    // Preserve any videos not in the order array at the end
+    const included = new Set(order);
+    for (const v of existing) {
+      if (!included.has(v.id)) reordered.push(v);
+    }
+    await db.collection("courses").updateOne(
+      { id: courseId },
+      { $set: { [`chapters.${chapterIndex}.videos`]: reordered } }
+    );
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  // Admin: rename a video (exclude /reorder from videoId capture)
+  const adminVideoEditMatch = pathname.match(/^\/api\/admin\/courses\/([^/]+)\/chapters\/([^/]+)\/videos\/(?!reorder$)([^/]+)$/);
   if (isAdmin(user) && req.method === "PATCH" && adminVideoEditMatch) {
     const [, courseId, chapterId, videoId] = adminVideoEditMatch;
     const body = await readBody(req);
@@ -970,6 +1265,294 @@ RESPONSE RULES:
       course: courseForClient(course, paid),
       chapters
     });
+    return;
+  }
+
+  // Watch: GET embed URL + prev/next for in-portal video player
+  const watchMatch = pathname.match(/^\/api\/courses\/([^/]+)\/watch\/([^/]+)$/);
+  if (req.method === "GET" && watchMatch) {
+    const [, courseId, videoId] = watchMatch;
+    const allChapters = await buildChapterList(courseId);
+
+    // Flatten all videos with chapter context
+    const flat = allChapters.flatMap((ch, ci) =>
+      ch.videos.map((v, vi) => ({ ...v, chapterId: ch.id, chapterTitle: ch.title, chapterIndex: ci, videoIndex: vi }))
+    );
+
+    const idx = flat.findIndex((v) => v.id === videoId);
+    if (idx === -1) { sendJson(res, 404, { error: "Video not found" }); return; }
+
+    const entry = flat[idx];
+    const isFree = entry.chapterIndex === 0;
+
+    if (!isFree && !await isPaid(user.id, courseId)) {
+      sendJson(res, 403, { error: "Enroll to watch this video" });
+      return;
+    }
+
+    // Convert Drive view URL → embed URL
+    const driveMatch = entry.url && entry.url.match(/\/file\/d\/([^/]+)/);
+    const embedUrl = driveMatch
+      ? `https://drive.google.com/file/d/${driveMatch[1]}/preview`
+      : entry.url;
+
+    const prev = flat[idx - 1] || null;
+    const next = flat[idx + 1] || null;
+
+    sendJson(res, 200, {
+      video: {
+        id: entry.id,
+        title: entry.title,
+        embedUrl,
+        chapterTitle: entry.chapterTitle,
+        isFree
+      },
+      prev: prev ? { id: prev.id, title: prev.title, chapterTitle: prev.chapterTitle } : null,
+      next: next ? { id: next.id, title: next.title, chapterTitle: next.chapterTitle } : null,
+      courseId
+    });
+    return;
+  }
+
+  // Progress: GET — paid users only
+  const progressGetMatch = pathname.match(/^\/api\/progress\/([^/]+)$/);
+  if (req.method === "GET" && progressGetMatch) {
+    const courseId = progressGetMatch[1];
+    if (!await isPaid(user.id, courseId)) {
+      sendJson(res, 200, { watched: [], lastWatched: null });
+      return;
+    }
+    const progress = await db.collection("progress").findOne({ userId: user.id, courseId });
+    sendJson(res, 200, {
+      watched: progress ? (progress.watched || []) : [],
+      lastWatched: progress ? (progress.lastWatched || null) : null
+    });
+    return;
+  }
+
+  // Progress: POST mark a video as watched — paid users only
+  const progressPostMatch = pathname.match(/^\/api\/progress\/([^/]+)\/([^/]+)$/);
+  if (req.method === "POST" && progressPostMatch) {
+    const [, courseId, videoId] = progressPostMatch;
+
+    // Must be paid — no progress tracking for free-preview viewers
+    if (!await isPaid(user.id, courseId)) {
+      sendJson(res, 403, { error: "Progress tracking is only available after enrollment" });
+      return;
+    }
+
+    // Verify video actually exists in this course
+    const allChapters = await buildChapterList(courseId);
+    let videoTitle = null;
+    for (const ch of allChapters) {
+      const v = ch.videos.find((v) => v.id === videoId);
+      if (v) { videoTitle = v.title; break; }
+    }
+    if (!videoTitle) {
+      sendJson(res, 404, { error: "Video not found" });
+      return;
+    }
+
+    await db.collection("progress").updateOne(
+      { userId: user.id, courseId },
+      {
+        $addToSet: { watched: videoId },
+        $set: { lastWatched: { videoId, videoTitle, at: new Date().toISOString() } }
+      },
+      { upsert: true }
+    );
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  // ── Quiz: generate 5 MCQs for a video using Groq AI ─────
+  const quizGenMatch = pathname.match(/^\/api\/quiz\/generate$/);
+  if (req.method === "POST" && quizGenMatch) {
+    const body = await readBody(req);
+    const courseId   = String(body.courseId   || "").trim();
+    const videoId    = String(body.videoId    || "").trim();
+    const videoTitle = String(body.videoTitle || "").trim();
+    const chapterTitle = String(body.chapterTitle || "").trim();
+
+    if (!videoTitle) {
+      sendJson(res, 400, { error: "videoTitle is required" });
+      return;
+    }
+
+    // Only paid users on non-free videos (free chapter is chapter index 0)
+    if (videoId) {
+      const allChapters = await buildChapterList(courseId);
+      const chIdx = allChapters.findIndex((ch) => ch.videos.some((v) => v.id === videoId));
+      const isFreeVid = chIdx === 0;
+      if (!isFreeVid && !await isPaid(user.id, courseId)) {
+        sendJson(res, 403, { error: "Enroll to take quizzes" });
+        return;
+      }
+    }
+
+    const groqKey = process.env.GROQ_API_KEY;
+    if (!groqKey) {
+      sendJson(res, 503, { error: "AI quiz generation is not configured." });
+      return;
+    }
+
+    const prompt = `You are an Oracle Fusion HCM instructor. Generate exactly 5 multiple-choice quiz questions based on the Oracle HCM lesson described below.
+
+Lesson: "${videoTitle}"${chapterTitle ? `\nChapter: "${chapterTitle}"` : ""}
+
+Rules:
+- Questions must test understanding of Oracle Fusion HCM concepts covered in this lesson
+- Each question must have exactly 4 options (A, B, C, D)
+- Exactly one option is correct
+- Avoid trivial or definition-only questions — test application and understanding
+- Do NOT add any explanation text or preamble
+
+Respond ONLY with a valid JSON array. No markdown, no code fences, no extra text. Example format:
+[
+  {
+    "q": "Question text here?",
+    "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
+    "answer": 0
+  }
+]
+
+Where "answer" is the 0-based index of the correct option.`;
+
+    try {
+      const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${groqKey}`
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 1200,
+          temperature: 0.4
+        })
+      });
+
+      if (!groqRes.ok) {
+        const errBody = await groqRes.json().catch(() => ({}));
+        const groqMsg = errBody?.error?.message || "unknown error";
+        if (groqRes.status === 401) sendJson(res, 502, { error: "AI key invalid." });
+        else if (groqRes.status === 429) sendJson(res, 429, { error: "AI rate limit — try again in a moment." });
+        else sendJson(res, 502, { error: `AI error: ${groqMsg}` });
+        return;
+      }
+
+      const groqData = await groqRes.json();
+      const raw = groqData.choices?.[0]?.message?.content || "";
+
+      // Strip markdown code fences if the model wrapped the JSON
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+
+      let questions;
+      try {
+        questions = JSON.parse(cleaned);
+      } catch {
+        console.error("Quiz JSON parse failed. Raw:", raw.slice(0, 300));
+        sendJson(res, 502, { error: "AI returned invalid format. Please try again." });
+        return;
+      }
+
+      if (!Array.isArray(questions) || questions.length === 0) {
+        sendJson(res, 502, { error: "AI returned no questions. Please try again." });
+        return;
+      }
+
+      // Sanitise — ensure each question has q, options[4], answer
+      const sanitised = questions.slice(0, 5).map((q) => ({
+        q:       String(q.q || q.question || "").trim(),
+        options: (Array.isArray(q.options) ? q.options : []).slice(0, 4).map(String),
+        answer:  typeof q.answer === "number" ? q.answer : 0
+      })).filter((q) => q.q && q.options.length === 4);
+
+      if (sanitised.length === 0) {
+        sendJson(res, 502, { error: "AI returned unparseable questions. Please try again." });
+        return;
+      }
+
+      sendJson(res, 200, { questions: sanitised });
+    } catch (err) {
+      console.error("Quiz generate error:", err.message);
+      sendJson(res, 500, { error: "Could not reach AI service. Please try again." });
+    }
+    return;
+  }
+
+  // ── Quiz: submit answers, score, save result ──────────────
+  if (req.method === "POST" && pathname === "/api/quiz/submit") {
+    const body      = await readBody(req);
+    const courseId  = String(body.courseId  || "").trim();
+    const videoId   = String(body.videoId   || "").trim();
+    const videoTitle = String(body.videoTitle || "").trim();
+    const questions = body.questions;   // [{q, options, answer}]
+    const answers   = body.answers;     // [number] — student's chosen index per question
+
+    if (!courseId || !videoId || !Array.isArray(questions) || !Array.isArray(answers)) {
+      sendJson(res, 400, { error: "courseId, videoId, questions and answers are required" });
+      return;
+    }
+
+    if (!await isPaid(user.id, courseId)) {
+      sendJson(res, 403, { error: "Enroll to submit quizzes" });
+      return;
+    }
+
+    // Score
+    const total   = questions.length;
+    let correct = 0;
+    const detail  = questions.map((q, i) => {
+      const isCorrect = answers[i] === q.answer;
+      if (isCorrect) correct++;
+      return {
+        q:            q.q,
+        options:      q.options,
+        correctIndex: q.answer,
+        chosenIndex:  answers[i] ?? -1,
+        correct:      isCorrect
+      };
+    });
+
+    const score    = Math.round((correct / total) * 100);
+    const passed   = score >= 60;
+    const attempt  = {
+      userId:     user.id,
+      userName:   user.name,
+      courseId,
+      videoId,
+      videoTitle,
+      score,
+      correct,
+      total,
+      passed,
+      answers,
+      detail,
+      attemptedAt: new Date()
+    };
+
+    // Keep best score per user+video
+    await db.collection("quizResults").updateOne(
+      { userId: user.id, videoId },
+      { $max: { bestScore: score }, $set: { ...attempt }, $inc: { attempts: 1 } },
+      { upsert: true }
+    );
+
+    sendJson(res, 200, { ok: true, score, correct, total, passed, detail });
+    return;
+  }
+
+  // ── Quiz: get best result for this user on a video ────────
+  const quizResultMatch = pathname.match(/^\/api\/quiz\/result\/([^/]+)\/([^/]+)$/);
+  if (req.method === "GET" && quizResultMatch) {
+    const [, courseId, videoId] = quizResultMatch;
+    const result = await db.collection("quizResults").findOne(
+      { userId: user.id, videoId },
+      { projection: { bestScore: 1, correct: 1, total: 1, passed: 1, attempts: 1, attemptedAt: 1 } }
+    );
+    sendJson(res, 200, { result: result || null });
     return;
   }
 
