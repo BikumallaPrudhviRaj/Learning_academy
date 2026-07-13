@@ -964,6 +964,33 @@ RULES:
     });
     const dailyEvents = Object.values(eventsByDay).sort((a, b) => a.date.localeCompare(b.date));
 
+    // ── Q&A stats ─────────────────────────────────────────
+    const allQuestions = await db.collection("questions").find({}).toArray();
+    const qaTotal      = allQuestions.length;
+    const qaLast30     = allQuestions.filter((q) => q.createdAt && new Date(q.createdAt) >= day30).length;
+    // Top 10 most-liked root questions (exclude replies)
+    const topLiked = allQuestions
+      .filter((q) => !q.parentId)
+      .map((q) => ({
+        text:      q.text.slice(0, 120) + (q.text.length > 120 ? "…" : ""),
+        videoId:   q.videoId,
+        userName:  q.userName,
+        likeCount: (q.likedBy || []).length,
+        createdAt: q.createdAt
+      }))
+      .filter((q) => q.likeCount > 0)
+      .sort((a, b) => b.likeCount - a.likeCount)
+      .slice(0, 10);
+    // Most active videos by post count
+    const postsByVideo = {};
+    allQuestions.forEach((q) => {
+      postsByVideo[q.videoId] = (postsByVideo[q.videoId] || 0) + 1;
+    });
+    const topQaVideos = Object.entries(postsByVideo)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 8)
+      .map(([videoId, count]) => ({ videoId, count }));
+
     sendJson(res, 200, {
       users: { totalUsers, paidUsers: paidUsersCount, freeUsers, adminCount: adminUsers.length },
       activeUsers: { last7: activeUsers7, last30: activeUsers30 },
@@ -977,7 +1004,8 @@ RULES:
       topKeywords,
       recentChats,
       dailyEvents,
-      topCourses
+      topCourses,
+      qa: { total: qaTotal, last30: qaLast30, topLiked, topQaVideos }
     });
     return;
   }
@@ -1553,6 +1581,171 @@ Where "answer" is the 0-based index of the correct option.`;
       { projection: { bestScore: 1, correct: 1, total: 1, passed: 1, attempts: 1, attemptedAt: 1 } }
     );
     sendJson(res, 200, { result: result || null });
+    return;
+  }
+
+  // ── Q&A: GET questions for a video ────────────────────────
+  const qaGetMatch = pathname.match(/^\/api\/qa\/([^/]+)\/([^/]+)$/);
+  if (req.method === "GET" && qaGetMatch) {
+    const [, courseId, videoId] = qaGetMatch;
+    if (!await isPaid(user.id, courseId)) {
+      sendJson(res, 403, { error: "Enroll to view Q&A" });
+      return;
+    }
+    const questions = await db.collection("questions")
+      .find({ courseId, videoId })
+      .sort({ createdAt: 1 })
+      .toArray();
+    sendJson(res, 200, {
+      questions: questions.map((q) => ({
+        id:         q.id,
+        text:       q.text,
+        userId:     q.userId,
+        userName:   q.userName,
+        parentId:   q.parentId || null,
+        createdAt:  q.createdAt,
+        isOwn:      q.userId === user.id,
+        canDelete:  q.userId === user.id || isAdmin(user),
+        likeCount:  (q.likedBy || []).length,
+        likedByMe:  (q.likedBy || []).includes(user.id)
+      }))
+    });
+    return;
+  }
+
+  // ── Q&A: PATCH like/unlike a question ────────────────────
+  const qaLikeMatch = pathname.match(/^\/api\/qa\/([^/]+)\/([^/]+)\/([^/]+)\/like$/);
+  if (req.method === "POST" && qaLikeMatch) {
+    const [, courseId, videoId, questionId] = qaLikeMatch;
+    if (!await isPaid(user.id, courseId)) {
+      sendJson(res, 403, { error: "Enroll to like posts" });
+      return;
+    }
+    const doc = await db.collection("questions").findOne({ id: questionId, courseId, videoId });
+    if (!doc) {
+      sendJson(res, 404, { error: "Question not found" });
+      return;
+    }
+    const liked = (doc.likedBy || []).includes(user.id);
+    if (liked) {
+      await db.collection("questions").updateOne({ id: questionId }, { $pull: { likedBy: user.id } });
+    } else {
+      await db.collection("questions").updateOne({ id: questionId }, { $addToSet: { likedBy: user.id } });
+    }
+    const updated = await db.collection("questions").findOne({ id: questionId });
+    sendJson(res, 200, {
+      likeCount: (updated.likedBy || []).length,
+      likedByMe: !liked
+    });
+    return;
+  }
+
+  // ── Q&A: POST a new question or reply ─────────────────────
+  const qaPostMatch = pathname.match(/^\/api\/qa\/([^/]+)\/([^/]+)$/);
+  if (req.method === "POST" && qaPostMatch) {
+    const [, courseId, videoId] = qaPostMatch;
+    if (!await isPaid(user.id, courseId)) {
+      sendJson(res, 403, { error: "Enroll to post questions" });
+      return;
+    }
+    const body = await readBody(req);
+    const text     = String(body.text     || "").trim();
+    const parentId = body.parentId ? String(body.parentId).trim() : null;
+    if (!text || text.length < 3) {
+      sendJson(res, 400, { error: "Question must be at least 3 characters" });
+      return;
+    }
+    if (text.length > 2000) {
+      sendJson(res, 400, { error: "Question must be 2000 characters or less" });
+      return;
+    }
+    // If replying, verify the parent exists in the same video
+    if (parentId) {
+      const parent = await db.collection("questions").findOne({ id: parentId, courseId, videoId });
+      if (!parent) {
+        sendJson(res, 404, { error: "Parent question not found" });
+        return;
+      }
+    }
+    const doc = {
+      id:        crypto.randomBytes(8).toString("hex"),
+      courseId,
+      videoId,
+      userId:    user.id,
+      userName:  user.name,
+      text,
+      parentId:  parentId || null,
+      createdAt: new Date()
+    };
+    await db.collection("questions").insertOne(doc);
+    sendJson(res, 201, {
+      question: {
+        id:        doc.id,
+        text:      doc.text,
+        userId:    doc.userId,
+        userName:  doc.userName,
+        parentId:  doc.parentId,
+        createdAt: doc.createdAt,
+        isOwn:     true,
+        canDelete: true,
+        likeCount: 0,
+        likedByMe: false
+      }
+    });
+    return;
+  }
+
+  // ── Q&A: DELETE a question (own or admin) ─────────────────
+  const qaDeleteMatch = pathname.match(/^\/api\/qa\/([^/]+)\/([^/]+)\/([^/]+)$/);
+  if (req.method === "DELETE" && qaDeleteMatch) {
+    const [, courseId, videoId, questionId] = qaDeleteMatch;
+    const doc = await db.collection("questions").findOne({ id: questionId, courseId, videoId });
+    if (!doc) {
+      sendJson(res, 404, { error: "Question not found" });
+      return;
+    }
+    if (doc.userId !== user.id && !isAdmin(user)) {
+      sendJson(res, 403, { error: "Not allowed" });
+      return;
+    }
+    // Also delete all replies to this question
+    await db.collection("questions").deleteMany({ parentId: questionId });
+    await db.collection("questions").deleteOne({ id: questionId });
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  // ── Q&A Admin: GET recent questions across all videos ─────
+  if (isAdmin(user) && req.method === "GET" && pathname === "/api/admin/qa") {
+    const url2 = new URL(req.url, `http://${req.headers.host}`);
+    const limit = Math.min(parseInt(url2.searchParams.get("limit") || "50", 10), 200);
+    const questions = await db.collection("questions")
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+    sendJson(res, 200, {
+      questions: questions.map((q) => ({
+        id:        q.id,
+        courseId:  q.courseId,
+        videoId:   q.videoId,
+        text:      q.text,
+        userId:    q.userId,
+        userName:  q.userName,
+        parentId:  q.parentId || null,
+        createdAt: q.createdAt
+      }))
+    });
+    return;
+  }
+
+  // ── Q&A Admin: DELETE any question ────────────────────────
+  const adminQaDeleteMatch = pathname.match(/^\/api\/admin\/qa\/([^/]+)$/);
+  if (isAdmin(user) && req.method === "DELETE" && adminQaDeleteMatch) {
+    const questionId = adminQaDeleteMatch[1];
+    await db.collection("questions").deleteMany({ parentId: questionId });
+    await db.collection("questions").deleteOne({ id: questionId });
+    sendJson(res, 200, { ok: true });
     return;
   }
 

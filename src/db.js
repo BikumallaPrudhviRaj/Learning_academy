@@ -27,6 +27,9 @@ async function connect() {
     await db.collection("courses").createIndex({ id: 1 }, { unique: true });
     await db.collection("paidEnrollments").createIndex({ userId: 1, courseId: 1 });
     await db.collection("testimonials").createIndex({ published: 1 });
+    await db.collection("questions").createIndex({ courseId: 1, videoId: 1, createdAt: 1 });
+    await db.collection("questions").createIndex({ parentId: 1 });
+    await db.collection("questions").createIndex({ "likedBy": 1 });
     
     return db;
   } catch (error) {

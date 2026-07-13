@@ -2166,6 +2166,7 @@ input:focus, textarea:focus {
 }
 .an-badge-green { background: var(--green-bg); color: var(--green); }
 .an-badge-gray  { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.an-badge-blue  { background: var(--blue-lt); color: var(--blue); }
 
 /* Course pill in tables */
 .an-course-pill {
@@ -2361,6 +2362,11 @@ input:focus, textarea:focus {
   box-shadow: var(--shadow-lg);
 }
 
+.vp-iframe-wrap {
+  position: absolute;
+  inset: 0;
+}
+
 .vp-iframe {
   position: absolute;
   inset: 0;
@@ -2368,6 +2374,122 @@ input:focus, textarea:focus {
   height: 100%;
   border: none;
   display: block;
+}
+
+/* Transparent overlay that sits over the Google Drive "Watch on Drive"
+   button in the top-right corner of the embedded player.
+   This prevents pointer events from reaching that button. */
+.vp-drive-blocker {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 42px;
+  z-index: 2;
+  background: transparent;
+  pointer-events: all;
+  cursor: default;
+}
+
+/* ── End-card (next video) ──────────────────────────── */
+.vp-endcard {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.7) 70%, transparent 100%);
+  padding: 28px 24px 22px;
+  animation: vpEndCardIn 0.35s ease;
+}
+
+@keyframes vpEndCardIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+.vp-endcard-inner {
+  max-width: 500px;
+}
+
+.vp-endcard-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 4px;
+}
+
+.vp-endcard-chapter {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vp-endcard-title {
+  font-size: clamp(14px, 2vw, 17px);
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 14px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.vp-endcard-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.vp-endcard-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  color: #0f172a;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.vp-endcard-play:hover { background: #e2e8f0; transform: scale(1.02); }
+
+.vp-endcard-countdown {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.65;
+  margin-left: 2px;
+}
+
+.vp-endcard-cancel {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.85);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.vp-endcard-cancel:hover { background: rgba(255,255,255,0.25); }
+
+@media (max-width: 480px) {
+  .vp-endcard { padding: 18px 14px 14px; }
+  .vp-endcard-title { font-size: 13px; }
 }
 
 .vp-meta {
@@ -3173,4 +3295,251 @@ details[open] .quiz-review-summary::before { content: "▼ "; }
   .vp-nav { grid-template-columns: 1fr; }
   .vp-next-btn { justify-content: flex-start; text-align: left; }
   .vp-nav-title { max-width: 180px; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   Q&A / DISCUSSION
+══════════════════════════════════════════════════════════ */
+.qa-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.qa-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.qa-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+}
+
+.qa-count {
+  background: var(--blue-lt);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+  line-height: 1.4;
+  min-width: 20px;
+  text-align: center;
+}
+
+.qa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.qa-loading, .qa-empty, .qa-error {
+  font-size: 14px;
+  color: var(--muted);
+  padding: 10px 0;
+}
+.qa-error { color: var(--red); }
+
+/* Threads */
+.qa-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qa-reply {
+  padding-left: 28px;
+}
+
+.qa-bubble {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.qa-bubble-root {
+  border-color: #d0dff8;
+  background: #f8fbff;
+}
+
+.qa-bubble-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.qa-author {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink2);
+}
+
+.qa-date {
+  font-size: 11px;
+  color: var(--muted);
+  flex: 1;
+}
+
+.qa-delete-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
+}
+.qa-delete-btn:hover { opacity: 1; color: var(--red); }
+
+.qa-text {
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Actions row (like + reply) */
+.qa-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.qa-like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+.qa-like-btn:hover { color: #e11d48; }
+.qa-like-btn.qa-liked { color: #e11d48; }
+.qa-like-btn.qa-liked .qa-like-icon { fill: #e11d48; stroke: #e11d48; }
+.qa-like-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.qa-like-icon {
+  transition: fill 0.15s, stroke 0.15s;
+}
+
+.qa-like-count {
+  min-width: 10px;
+}
+
+.qa-reply-toggle {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.85;
+}
+.qa-reply-toggle:hover { opacity: 1; text-decoration: underline; }
+
+/* Reply form */
+.qa-reply-form {
+  padding-left: 28px;
+  padding-top: 4px;
+}
+
+/* Main Q&A post form */
+.qa-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qa-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: 14px;
+  resize: vertical;
+  transition: border-color 0.15s;
+  background: var(--panel);
+  color: var(--ink);
+  min-height: 64px;
+}
+.qa-input:focus { outline: none; border-color: var(--blue); }
+
+.qa-reply-input { min-height: 52px; }
+
+.qa-form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.qa-char-count {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.qa-submit-btn {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.qa-submit-btn:hover { background: var(--blue-dk); }
+.qa-submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.qa-form-msg {
+  font-size: 13px;
+  color: var(--red);
+  min-height: 18px;
+}
+
+.qa-reply-msg {
+  font-size: 13px;
+  color: var(--red);
+  min-height: 18px;
+  margin-top: 4px;
+}
+
+/* Admin Q&A table */
+.qa-admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.qa-admin-table th,
+.qa-admin-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.qa-admin-table th { background: var(--soft); font-weight: 700; color: var(--ink2); }
+.qa-admin-table tr:last-child td { border-bottom: none; }
+.qa-admin-table .qa-admin-del {
+  background: none; border: 1px solid var(--red); color: var(--red);
+  border-radius: 6px; padding: 3px 8px; font-size: 12px; cursor: pointer;
+}
+.qa-admin-table .qa-admin-del:hover { background: var(--red-bg); }
+
+@media (max-width: 600px) {
+  .qa-reply { padding-left: 14px; }
+  .qa-reply-form { padding-left: 14px; }
 }

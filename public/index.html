@@ -212,9 +212,7 @@
           </div>
         </div>
         <section id="analyticsView" class="hidden">
-          <div id="analyticsInner" class="analytics-wrap">
-            <p style="padding:20px;color:var(--muted)">Loading analytics…</p>
-          </div>
+          <div id="analyticsInner" class="analytics-wrap"></div>
         </section>
 
         <section id="adminView" class="hidden">
@@ -447,6 +445,32 @@
                 </div>
               </div>
               <p id="adminEditVideoMessage" class="message"></p>
+            </div>
+
+            <!-- Q&A Moderation -->
+            <div class="admin-card">
+              <h3>Q&amp;A Moderation</h3>
+              <p class="hint">View and delete discussion posts across all videos. Deleting a question also removes all its replies.</p>
+              <div class="admin-rows">
+                <div class="admin-row admin-row-actions">
+                  <button id="adminQaLoadBtn" class="admin-action-btn" type="button">Load Recent Posts</button>
+                </div>
+              </div>
+              <p id="adminQaMessage" class="message"></p>
+              <div id="adminQaTableWrap" class="an-table-wrap" style="margin-top:12px;display:none">
+                <table class="qa-admin-table">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Video</th>
+                      <th>Post</th>
+                      <th>Date</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminQaTableBody"></tbody>
+                </table>
+              </div>
             </div>
 
           </div>

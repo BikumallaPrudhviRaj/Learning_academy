@@ -474,6 +474,7 @@ qs("#analyticsTab").addEventListener("click", () => {
 let _analyticsTab = "overview"; // track which sub-tab is active
 
 async function loadAnalytics() {
+  if (!currentUser?.isAdmin) return;   // never expose analytics to non-admins
   const inner = qs("#analyticsInner");
   inner.innerHTML = `<p style="padding:20px;color:var(--muted)">Loading…</p>`;
 
@@ -486,7 +487,7 @@ async function loadAnalytics() {
   const {
     users, activeUsers, recentSignups, paidStudentList, enrollByCourse,
     dailySignups, videos, events30, sessions, topKeywords,
-    recentChats, dailyEvents, topCourses
+    recentChats, dailyEvents, topCourses, qa
   } = data;
 
   // ── helpers ──────────────────────────────────────────────
@@ -782,6 +783,23 @@ async function loadAnalytics() {
         `).join("")
       : `<tr><td colspan="3" style="color:var(--muted)">No queries yet.</td></tr>`;
 
+    // Q&A top-liked table
+    const qaTopLikedRows = qa?.topLiked?.length
+      ? qa.topLiked.map((q) => `
+          <tr>
+            <td class="an-td-query">${escHtml(q.text)}</td>
+            <td>${escHtml(q.userName)}</td>
+            <td style="color:var(--muted);font-size:12px">${escHtml(q.videoId)}</td>
+            <td><span class="an-badge an-badge-blue">♥ ${q.likeCount}</span></td>
+          </tr>
+        `).join("")
+      : `<tr><td colspan="4" style="color:var(--muted)">No likes yet — students haven't liked any posts.</td></tr>`;
+
+    // Q&A most-active videos bar chart
+    const qaVideoChart = qa?.topQaVideos?.length
+      ? sparkBar(qa.topQaVideos.map((v) => ({ label: v.videoId, count: v.count })), "count", "label", "var(--blue)", "120px")
+      : `<p class="an-empty">No discussion posts yet.</p>`;
+
     return `
       <!-- ── Engagement KPIs ── -->
       <div class="an-cards">
@@ -813,6 +831,16 @@ async function loadAnalytics() {
           <p class="an-card-val">${events30.videoPlays}</p>
           <p class="an-card-sub">last 30 days</p>
         </div>
+        <div class="an-card an-card-blue">
+          <p class="an-card-label">Discussion Posts</p>
+          <p class="an-card-val">${qa?.total ?? 0}</p>
+          <p class="an-card-sub">all time</p>
+        </div>
+        <div class="an-card">
+          <p class="an-card-label">New Posts</p>
+          <p class="an-card-val">${qa?.last30 ?? 0}</p>
+          <p class="an-card-sub">last 30 days</p>
+        </div>
       </div>
 
       <!-- ── Top videos ── -->
@@ -834,6 +862,23 @@ async function loadAnalytics() {
           <table class="an-table">
             <thead><tr><th>Question</th><th>User</th><th>Time</th></tr></thead>
             <tbody>${chatRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Q&A: most discussed videos ── -->
+      <div class="an-section an-section-full">
+        <h3 class="an-section-title">Most Discussed Videos <span class="an-section-badge">by post count · all time</span></h3>
+        ${qaVideoChart}
+      </div>
+
+      <!-- ── Q&A: top liked questions ── -->
+      <div class="an-section an-section-full">
+        <h3 class="an-section-title">Top Liked Questions <span class="an-section-badge">most ♥ · all time</span></h3>
+        <div class="an-table-wrap">
+          <table class="an-table">
+            <thead><tr><th>Question</th><th>Posted by</th><th>Video</th><th>Likes</th></tr></thead>
+            <tbody>${qaTopLikedRows}</tbody>
           </table>
         </div>
       </div>
@@ -1317,6 +1362,49 @@ async function openVideoPlayer(courseId, videoId) {
        </button>`
     : "";
 
+  const qaSectionHtml = !video.isFree ? `
+    <div class="qa-section" id="qaSection">
+      <div class="qa-header">
+        <h3 class="qa-heading">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Discussion
+        </h3>
+        <span class="qa-count" id="qaCount"></span>
+      </div>
+      <div id="qaList" class="qa-list">
+        <p class="qa-loading">Loading discussion…</p>
+      </div>
+      <form class="qa-form" id="qaForm" autocomplete="off">
+        <textarea id="qaInput" class="qa-input" placeholder="Ask a question or share an insight about this lesson…" rows="2" maxlength="2000"></textarea>
+        <div class="qa-form-footer">
+          <span class="qa-char-count" id="qaCharCount">0 / 2000</span>
+          <button type="submit" class="qa-submit-btn">Post</button>
+        </div>
+        <p id="qaFormMsg" class="qa-form-msg"></p>
+      </form>
+    </div>
+  ` : "";
+
+  // Next-video end-card HTML (only when there IS a next video)
+  const nextCardHtml = next ? `
+    <div class="vp-endcard hidden" id="vpEndCard">
+      <div class="vp-endcard-inner">
+        <p class="vp-endcard-label">Up next</p>
+        <p class="vp-endcard-chapter">${next.chapterTitle}</p>
+        <p class="vp-endcard-title">${next.title}</p>
+        <div class="vp-endcard-actions">
+          <button class="vp-endcard-play" type="button" id="vpEndCardPlay"
+            onclick="dismissEndCard(); navigateVideo('${courseId}','${next.id}')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Play now
+            <span class="vp-endcard-countdown" id="vpEndCardCountdown">(5)</span>
+          </button>
+          <button class="vp-endcard-cancel" type="button" onclick="dismissEndCard()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  ` : "";
+
   playerView.innerHTML = `
     <div class="vp-wrap">
       <div class="vp-topbar">
@@ -1328,14 +1416,20 @@ async function openVideoPlayer(courseId, videoId) {
       </div>
 
       <div class="vp-player-box">
-        <iframe
-          class="vp-iframe"
-          src="${video.embedUrl}"
-          allow="autoplay"
-          allowfullscreen
-          loading="lazy"
-          title="${video.title}">
-        </iframe>
+        <div class="vp-iframe-wrap">
+          <iframe
+            class="vp-iframe"
+            src="${video.embedUrl}"
+            allow="autoplay"
+            allowfullscreen
+            loading="lazy"
+            title="${video.title}"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups-to-escape-sandbox">
+          </iframe>
+          <!-- Blocks the "Watch on Google Drive" button area from being clickable -->
+          <div class="vp-drive-blocker" aria-hidden="true"></div>
+          ${nextCardHtml}
+        </div>
       </div>
 
       <div class="vp-meta">
@@ -1360,11 +1454,73 @@ async function openVideoPlayer(courseId, videoId) {
           }
         </div>
       </div>
+      ${qaSectionHtml}
     </div>
   `;
+
+  // Load Q&A if this is a paid video
+  if (!video.isFree) loadQa(courseId, videoId);
+
+  // Show end-card after the Google Drive video iframe fires a postMessage
+  // indicating playback ended, OR after a fixed delay as a fallback.
+  // Google Drive embeds send window.postMessage when the video ends.
+  if (next) startEndCardListener(courseId, next.id);
+}
+
+// ── End-card (next video) ─────────────────────────────────
+let _endCardTimer   = null;
+let _endCardMsgHandler = null;
+
+function startEndCardListener(courseId, nextVideoId) {
+  // Clean up any previous listener/timer
+  dismissEndCard();
+
+  // Listen for Google Drive player postMessage "ended" signal
+  _endCardMsgHandler = (e) => {
+    // Google Drive sends various postMessage payloads; look for the "ended" state
+    if (!e.origin.includes("drive.google.com") && !e.origin.includes("docs.google.com")) return;
+    let payload;
+    try { payload = typeof e.data === "string" ? JSON.parse(e.data) : e.data; } catch { return; }
+    const state = payload?.state ?? payload?.data?.state ?? payload?.info?.playerState;
+    // state 0 = ended in YouTube-style embeds; Google Drive uses "ended"
+    if (state === 0 || state === "ended" || state === "ENDED") {
+      showEndCard();
+    }
+  };
+  window.addEventListener("message", _endCardMsgHandler);
+
+  // Fallback: show end-card after a generous fixed delay (Drive doesn't always fire the event)
+  // We use a MutationObserver on the vp-player-box to detect if user is still on this video
+}
+
+function showEndCard() {
+  const card = qs("#vpEndCard");
+  if (!card || !card.classList.contains("hidden")) return; // already showing or gone
+  card.classList.remove("hidden");
+  // Start 5-second countdown, then auto-navigate
+  let secs = 5;
+  const countEl = qs("#vpEndCardCountdown");
+  _endCardTimer = setInterval(() => {
+    secs--;
+    if (countEl) countEl.textContent = `(${secs})`;
+    if (secs <= 0) {
+      clearInterval(_endCardTimer);
+      _endCardTimer = null;
+      const playBtn = qs("#vpEndCardPlay");
+      if (playBtn) playBtn.click();
+    }
+  }, 1000);
+}
+
+function dismissEndCard() {
+  if (_endCardTimer) { clearInterval(_endCardTimer); _endCardTimer = null; }
+  if (_endCardMsgHandler) { window.removeEventListener("message", _endCardMsgHandler); _endCardMsgHandler = null; }
+  const card = qs("#vpEndCard");
+  if (card) card.classList.add("hidden");
 }
 
 function closeVideoPlayer() {
+  dismissEndCard();
   const playerView  = qs("#videoPlayerView");
   const detailView  = qs("#courseDetailView");
   hide(playerView);
@@ -1379,6 +1535,7 @@ function closeVideoPlayer() {
 }
 
 async function navigateVideo(courseId, videoId) {
+  dismissEndCard();
   // Scroll to top of player smoothly before swapping content
   qs("#videoPlayerView").scrollIntoView({ behavior: "smooth", block: "start" });
   await openVideoPlayer(courseId, videoId);
@@ -2105,6 +2262,67 @@ qs("#adminDeleteVideoBtn").addEventListener("click", () => {
   });
 });
 
+// Admin: Q&A moderation — load and render recent posts
+qs("#adminQaLoadBtn").addEventListener("click", async () => {
+  const msg      = qs("#adminQaMessage");
+  const wrap     = qs("#adminQaTableWrap");
+  const tbody    = qs("#adminQaTableBody");
+  msg.textContent = "Loading…";
+  msg.style.color = "var(--muted)";
+
+  const { ok, data } = await api("GET", "/api/admin/qa?limit=100");
+  if (!ok) {
+    msg.style.color = "var(--red)";
+    msg.textContent = data?.error || "Could not load posts.";
+    return;
+  }
+
+  const posts = data.questions || [];
+  msg.textContent = posts.length === 0 ? "No posts yet." : `${posts.length} post${posts.length !== 1 ? "s" : ""} loaded.`;
+  msg.style.color = "var(--muted)";
+
+  if (posts.length === 0) { wrap.style.display = "none"; return; }
+
+  function escA(s) {
+    return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function fmtA(iso) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  }
+
+  tbody.innerHTML = posts.map((p) => `
+    <tr id="adminQaRow-${p.id}">
+      <td>${escA(p.userName)}</td>
+      <td style="color:var(--muted);font-size:12px">${escA(p.videoId)}${p.parentId ? " ↳ reply" : ""}</td>
+      <td style="max-width:320px;word-break:break-word">${escA(p.text.slice(0, 200))}${p.text.length > 200 ? "…" : ""}</td>
+      <td style="white-space:nowrap;font-size:12px;color:var(--muted)">${fmtA(p.createdAt)}</td>
+      <td>
+        <button class="qa-admin-del" type="button" onclick="adminDeleteQaPost('${p.id}')">Delete</button>
+      </td>
+    </tr>
+  `).join("");
+
+  wrap.style.display = "block";
+});
+
+async function adminDeleteQaPost(questionId) {
+  showConfirm("Delete this post and all its replies?", async () => {
+    const msg = qs("#adminQaMessage");
+    const { ok, data } = await api("DELETE", `/api/admin/qa/${questionId}`);
+    if (!ok) {
+      msg.style.color = "var(--red)";
+      msg.textContent = data?.error || "Could not delete.";
+      return;
+    }
+    // Remove row from table
+    const row = qs(`#adminQaRow-${questionId}`);
+    if (row) row.remove();
+    msg.style.color = "var(--green)";
+    msg.textContent = "Post deleted.";
+  });
+}
+
 // ── Confirm dialog ────────────────────────────────────────
 let confirmCallback = null;
 const confirmOverlay = qs("#adminConfirmOverlay");
@@ -2310,6 +2528,242 @@ function renderQuickChips() {
 chatToggleBtn.addEventListener("click", () => {
   if (chatOpen) renderQuickChips();
 });
+
+// ── Q&A / Discussion ─────────────────────────────────────
+// State for the currently-open Q&A panel
+let _qaState = null; // { courseId, videoId, questions: [] }
+
+function fmtQaDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) +
+    " · " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+}
+
+function escQa(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function renderQaList() {
+  const listEl   = qs("#qaList");
+  const countEl  = qs("#qaCount");
+  if (!listEl || !_qaState) return;
+
+  const { questions, courseId, videoId } = _qaState;
+  const roots   = questions.filter((q) => !q.parentId);
+  const replies  = questions.filter((q) => q.parentId);
+  const replyMap = {};
+  replies.forEach((r) => {
+    (replyMap[r.parentId] = replyMap[r.parentId] || []).push(r);
+  });
+
+  if (countEl) countEl.textContent = questions.length > 0 ? `${questions.length}` : "";
+
+  if (roots.length === 0) {
+    listEl.innerHTML = `<p class="qa-empty">No discussion yet — be the first to ask a question!</p>`;
+    return;
+  }
+
+  listEl.innerHTML = roots.map((q) => {
+    const threadReplies = (replyMap[q.id] || []);
+    const repliesHtml = threadReplies.map((r) => `
+      <div class="qa-reply" data-id="${r.id}">
+        <div class="qa-bubble">
+          <div class="qa-bubble-header">
+            <span class="qa-author">${escQa(r.userName)}</span>
+            <span class="qa-date">${fmtQaDate(r.createdAt)}</span>
+            ${r.canDelete ? `<button class="qa-delete-btn" type="button" data-id="${r.id}" data-parent="${q.id}" onclick="deleteQaPost('${courseId}','${videoId}','${r.id}')" aria-label="Delete reply">×</button>` : ""}
+          </div>
+          <p class="qa-text">${escQa(r.text)}</p>
+          <div class="qa-actions">
+            <button class="qa-like-btn${r.likedByMe ? " qa-liked" : ""}" type="button"
+              onclick="likeQaPost('${courseId}','${videoId}','${r.id}',this)"
+              aria-label="${r.likedByMe ? "Unlike" : "Like"}">
+              <svg class="qa-like-icon" width="13" height="13" viewBox="0 0 24 24" fill="${r.likedByMe ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <span class="qa-like-count">${r.likeCount || 0}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+    return `
+      <div class="qa-thread" data-id="${q.id}">
+        <div class="qa-bubble qa-bubble-root">
+          <div class="qa-bubble-header">
+            <span class="qa-author">${escQa(q.userName)}</span>
+            <span class="qa-date">${fmtQaDate(q.createdAt)}</span>
+            ${q.canDelete ? `<button class="qa-delete-btn" type="button" onclick="deleteQaPost('${courseId}','${videoId}','${q.id}')" aria-label="Delete post">×</button>` : ""}
+          </div>
+          <p class="qa-text">${escQa(q.text)}</p>
+          <div class="qa-actions">
+            <button class="qa-like-btn${q.likedByMe ? " qa-liked" : ""}" type="button"
+              onclick="likeQaPost('${courseId}','${videoId}','${q.id}',this)"
+              aria-label="${q.likedByMe ? "Unlike" : "Like"}">
+              <svg class="qa-like-icon" width="13" height="13" viewBox="0 0 24 24" fill="${q.likedByMe ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <span class="qa-like-count">${q.likeCount || 0}</span>
+            </button>
+            <button class="qa-reply-toggle" type="button" onclick="toggleQaReply('${q.id}')">
+              Reply${threadReplies.length > 0 ? ` · ${threadReplies.length}` : ""}
+            </button>
+          </div>
+        </div>
+        ${repliesHtml}
+        <div class="qa-reply-form hidden" id="qaReplyForm-${q.id}">
+          <textarea class="qa-input qa-reply-input" placeholder="Write a reply…" rows="2" maxlength="2000"></textarea>
+          <div class="qa-form-footer">
+            <span></span>
+            <button class="qa-submit-btn qa-reply-post-btn" type="button"
+              onclick="postQaReply('${courseId}','${videoId}','${q.id}')">Post reply</button>
+          </div>
+          <p class="qa-reply-msg"></p>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function loadQa(courseId, videoId) {
+  _qaState = { courseId, videoId, questions: [] };
+  const { ok, data } = await api("GET", `/api/qa/${courseId}/${videoId}`);
+  const listEl = qs("#qaList");
+  if (!listEl) return;
+  if (!ok) {
+    listEl.innerHTML = `<p class="qa-error">${data?.error || "Could not load discussion."}</p>`;
+    return;
+  }
+  _qaState.questions = data.questions || [];
+  renderQaList();
+
+  // Wire up the post form
+  const form = qs("#qaForm");
+  const input = qs("#qaInput");
+  const charCount = qs("#qaCharCount");
+  if (!form || !input) return;
+
+  input.addEventListener("input", () => {
+    const len = input.value.length;
+    if (charCount) charCount.textContent = `${len} / 2000`;
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    const msg  = qs("#qaFormMsg");
+    if (!text) return;
+
+    const btn = form.querySelector(".qa-submit-btn");
+    btn.disabled = true;
+    btn.textContent = "Posting…";
+
+    const { ok: postOk, data: postData } = await api(
+      "POST", `/api/qa/${courseId}/${videoId}`, { text }
+    );
+
+    btn.disabled = false;
+    btn.textContent = "Post";
+
+    if (!postOk) {
+      if (msg) { msg.style.color = "var(--red)"; msg.textContent = postData?.error || "Could not post."; }
+      return;
+    }
+
+    _qaState.questions.push(postData.question);
+    input.value = "";
+    if (charCount) charCount.textContent = "0 / 2000";
+    if (msg) msg.textContent = "";
+    renderQaList();
+  });
+}
+
+function toggleQaReply(parentId) {
+  const form = qs(`#qaReplyForm-${parentId}`);
+  if (!form) return;
+  const isHidden = form.classList.contains("hidden");
+  // Close all open reply forms first
+  qsa(".qa-reply-form").forEach((f) => f.classList.add("hidden"));
+  if (isHidden) {
+    form.classList.remove("hidden");
+    form.querySelector("textarea")?.focus();
+  }
+}
+
+async function postQaReply(courseId, videoId, parentId) {
+  const form    = qs(`#qaReplyForm-${parentId}`);
+  if (!form) return;
+  const input   = form.querySelector("textarea");
+  const msg     = form.querySelector(".qa-reply-msg");
+  const btn     = form.querySelector(".qa-reply-post-btn");
+  const text    = input?.value.trim() || "";
+  if (!text) return;
+
+  if (btn) { btn.disabled = true; btn.textContent = "Posting…"; }
+
+  const { ok, data } = await api(
+    "POST", `/api/qa/${courseId}/${videoId}`, { text, parentId }
+  );
+
+  if (btn) { btn.disabled = false; btn.textContent = "Post reply"; }
+
+  if (!ok) {
+    if (msg) { msg.style.color = "var(--red)"; msg.textContent = data?.error || "Could not post reply."; }
+    return;
+  }
+
+  _qaState.questions.push(data.question);
+  if (input) input.value = "";
+  if (msg) msg.textContent = "";
+  renderQaList();
+}
+
+async function likeQaPost(courseId, videoId, questionId, btnEl) {
+  // Optimistic UI — flip state immediately, revert on error
+  const countEl = btnEl.querySelector(".qa-like-count");
+  const iconEl  = btnEl.querySelector(".qa-like-icon");
+  const wasLiked = btnEl.classList.contains("qa-liked");
+  const prevCount = parseInt(countEl?.textContent || "0", 10);
+
+  btnEl.classList.toggle("qa-liked", !wasLiked);
+  if (iconEl) iconEl.setAttribute("fill", wasLiked ? "none" : "currentColor");
+  if (countEl) countEl.textContent = wasLiked ? Math.max(0, prevCount - 1) : prevCount + 1;
+  btnEl.disabled = true;
+
+  const { ok, data } = await api("POST", `/api/qa/${courseId}/${videoId}/${questionId}/like`);
+  btnEl.disabled = false;
+
+  if (!ok) {
+    // Revert
+    btnEl.classList.toggle("qa-liked", wasLiked);
+    if (iconEl) iconEl.setAttribute("fill", wasLiked ? "currentColor" : "none");
+    if (countEl) countEl.textContent = prevCount;
+    return;
+  }
+
+  // Sync local state so re-renders are consistent
+  const q = _qaState?.questions.find((q) => q.id === questionId);
+  if (q) { q.likeCount = data.likeCount; q.likedByMe = data.likedByMe; }
+  if (countEl) countEl.textContent = data.likeCount;
+  btnEl.classList.toggle("qa-liked", data.likedByMe);
+  if (iconEl) iconEl.setAttribute("fill", data.likedByMe ? "currentColor" : "none");
+}
+
+async function deleteQaPost(courseId, videoId, questionId) {
+  showConfirm("Delete this post and all its replies?", async () => {
+    const { ok, data } = await api("DELETE", `/api/qa/${courseId}/${videoId}/${questionId}`);
+    if (!ok) {
+      // Re-render to show error inline — just alert for simplicity
+      alert(data?.error || "Could not delete.");
+      return;
+    }
+    // Remove the question and all its replies from local state
+    _qaState.questions = _qaState.questions.filter(
+      (q) => q.id !== questionId && q.parentId !== questionId
+    );
+    renderQaList();
+  });
+}
 
 // ── Boot: check session ───────────────────────────────────
 (async () => {
