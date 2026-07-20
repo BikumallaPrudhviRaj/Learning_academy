@@ -122,6 +122,20 @@ a { color: var(--blue); }
   flex-wrap: wrap;
 }
 
+.brand-panel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  color: rgba(255,255,255,0.75);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  letter-spacing: 0.1px;
+  transition: color 0.15s;
+}
+.brand-panel-link:hover { color: #fff; }
+
 .stats-row span {
   border: 1px solid rgba(255,255,255,0.22);
   background: rgba(255,255,255,0.1);

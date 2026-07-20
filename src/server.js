@@ -240,6 +240,13 @@ async function handleApi(req, res, pathname) {
       return;
     }
 
+    const allowedDomains = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com"];
+    const emailDomain = email.split("@")[1];
+    if (!allowedDomains.includes(emailDomain)) {
+      sendJson(res, 400, { error: "Please register with a Gmail, Outlook, Hotmail, or Yahoo email address" });
+      return;
+    }
+
     if (!mobile || !/^[0-9]{10}$/.test(mobile)) {
       sendJson(res, 400, { error: "Valid 10-digit mobile number is required" });
       return;
@@ -1809,6 +1816,7 @@ const server = http.createServer(async (req, res) => {
       await handleApi(req, res, url.pathname);
       return;
     }
+
 
     if (await handleWatch(req, res, url.pathname)) return;
     serveStatic(req, res, url.pathname);

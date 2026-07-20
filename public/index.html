@@ -3,99 +3,217 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Up 'N' Rise Learning Academy</title>
+    <title>Oracle Fusion HCM Course — Up 'N' Rise Learning Academy</title>
+    <meta name="description" content="Comprehensive Oracle Fusion HCM Techno-Functional training. Beginner to Advanced. ₹30,000 incl GST. Job support, resume review & mock interviews included.">
     <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/landing.css">
   </head>
   <body>
-    <main class="shell">
-      <section id="loginView" class="login-view">
-        <div class="brand-panel">
-          <p class="eyebrow">Up 'N' Rise Learning Academy</p>
-          <h1>Career-ready courses with guided access.</h1>
-          <p class="lead">Login to view courses, choose a program, pay with QR, and unlock direct Google Drive lesson links after payment is approved.</p>
-          <div class="stats-row" aria-label="Academy highlights">
-            <span><strong>Recorded</strong> videos per course</span>
-            <span><strong>1:1</strong> review support</span>
+
+    <!-- ═══════════════════════════════════════════════════════
+         PUBLIC LANDING VIEW (shown when logged out)
+    ════════════════════════════════════════════════════════ -->
+    <section id="loginView">
+
+      <!-- Sticky nav -->
+      <header class="lp-nav">
+        <div class="lp-nav-inner">
+          <div class="lp-brand">
+            <span class="lp-brand-dot"></span>
+            <span>Up 'N' Rise Learning Academy</span>
+          </div>
+          <div class="lp-nav-ctas">
+            <a class="lp-btn-ghost" href="https://wa.me/message/SIRQKFLMGZSHA1" target="_blank" rel="noopener noreferrer">
+              <svg width="15" height="15" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16 2C8.268 2 2 8.268 2 16c0 2.478.643 4.81 1.77 6.833L2 30l7.374-1.744A13.93 13.93 0 0 0 16 30c7.732 0 14-6.268 14-14S23.732 2 16 2zm0 2c6.627 0 12 5.373 12 12s-5.373 12-12 12a11.93 11.93 0 0 1-6.07-1.656l-.434-.266-4.374 1.033.997-4.28-.29-.458A11.93 11.93 0 0 1 4 16C4 9.373 9.373 4 16 4zm-2.434 5.5c-.279 0-.73.104-1.113.52-.382.416-1.461 1.428-1.461 3.482 0 2.054 1.496 4.04 1.703 4.322.208.28 2.896 4.573 7.123 6.228 1.006.392 1.793.626 2.406.8.974.279 1.86.24 2.562.145.781-.105 2.408-.984 2.748-1.935.34-.951.34-1.766.238-1.936-.1-.169-.37-.27-.774-.47-.403-.2-2.385-1.178-2.754-1.312-.37-.134-.639-.2-.908.2-.27.4-1.046 1.312-1.282 1.581-.236.269-.472.304-.875.104-.403-.2-1.703-.628-3.245-2.003-1.2-1.07-2.01-2.39-2.245-2.79-.236-.4-.025-.617.177-.816.18-.18.403-.47.605-.706.2-.234.267-.4.4-.668.134-.268.067-.503-.034-.703-.1-.2-.907-2.188-1.242-2.994-.327-.786-.66-.679-.908-.692l-.773-.013z"/></svg>
+              WhatsApp
+            </a>
+            <button type="button" class="lp-btn-primary" id="navEnrollBtn">Sign in / Enroll</button>
           </div>
         </div>
+      </header>
 
-        <form id="loginForm" class="login-card">
-          <h2>Login</h2>
-          <label>
-            Email
-            <input name="email" type="email" autocomplete="email" required title="Please enter a valid email address">
-          </label>
-          <label>
-            Password
-            <input name="password" type="password" autocomplete="current-password" required>
-          </label>
-          <label class="show-password-checkbox">
-            <input type="checkbox" class="show-password-toggle">
-            <span>Show password</span>
-          </label>
-          <button type="submit">Sign in</button>
-          <p id="loginMessage" class="message" role="status"></p>
-          <p class="hint">Don't have an account? <button type="button" id="showSignup" class="text-button">Create account</button></p>
-          <div class="card-wa-divider"></div>
-          <a class="card-wa-link" href="https://wa.me/message/SIRQKFLMGZSHA1" target="_blank" rel="noopener noreferrer">
-            <svg width="16" height="16" viewBox="0 0 32 32" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M16 2C8.268 2 2 8.268 2 16c0 2.478.643 4.81 1.77 6.833L2 30l7.374-1.744A13.93 13.93 0 0 0 16 30c7.732 0 14-6.268 14-14S23.732 2 16 2zm0 2c6.627 0 12 5.373 12 12s-5.373 12-12 12a11.93 11.93 0 0 1-6.07-1.656l-.434-.266-4.374 1.033.997-4.28-.29-.458A11.93 11.93 0 0 1 4 16C4 9.373 9.373 4 16 4zm-2.434 5.5c-.279 0-.73.104-1.113.52-.382.416-1.461 1.428-1.461 3.482 0 2.054 1.496 4.04 1.703 4.322.208.28 2.896 4.573 7.123 6.228 1.006.392 1.793.626 2.406.8.974.279 1.86.24 2.562.145.781-.105 2.408-.984 2.748-1.935.34-.951.34-1.766.238-1.936-.1-.169-.37-.27-.774-.47-.403-.2-2.385-1.178-2.754-1.312-.37-.134-.639-.2-.908.2-.27.4-1.046 1.312-1.282 1.581-.236.269-.472.304-.875.104-.403-.2-1.703-.628-3.245-2.003-1.2-1.07-2.01-2.39-2.245-2.79-.236-.4-.025-.617.177-.816.18-.18.403-.47.605-.706.2-.234.267-.4.4-.668.134-.268.067-.503-.034-.703-.1-.2-.907-2.188-1.242-2.994-.327-.786-.66-.679-.908-.692l-.773-.013z"/></svg>
-            Have questions? Message us on WhatsApp
-          </a>
-          <a class="card-insta-link" href="https://tinywebs.site/EedIBE" target="_blank" rel="noopener noreferrer">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="24" height="24" rx="6" fill="url(#ig-login)"/><circle cx="12" cy="12" r="4.5" stroke="#fff" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.1" fill="#fff"/><defs><linearGradient id="ig-login" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#f9ce34"/><stop offset="35%" stop-color="#ee2a7b"/><stop offset="100%" stop-color="#6228d7"/></linearGradient></defs></svg>
-            Watch success stories on Instagram
-          </a>
-        </form>
+      <!-- Hero: landing content left, auth form right -->
+      <div class="lp-hero" id="heroSection">
+        <div class="lp-hero-inner lp-hero-split">
 
-        <form id="signupForm" class="login-card hidden">
-          <h2>Create Account</h2>
-          <label>
-            Full Name
-            <input name="name" type="text" autocomplete="name" required minlength="2" title="Name must be at least 2 characters">
-          </label>
-          <label>
-            Email
-            <input name="email" type="email" autocomplete="email" required title="Please enter a valid email address">
-          </label>
-          <label>
-            Mobile Number
-            <input name="mobile" type="tel" autocomplete="tel" required pattern="[0-9]{10}" placeholder="10-digit mobile number" title="Please enter a 10-digit mobile number">
-          </label>
-          <label>
-            Password
-            <input name="password" type="password" autocomplete="new-password" required minlength="6" title="Password must be at least 6 characters">
-          </label>
-          <label class="show-password-checkbox">
-            <input type="checkbox" class="show-password-toggle">
-            <span>Show password</span>
-          </label>
-          <button type="submit">Create Account</button>
-          <p id="signupMessage" class="message" role="status"></p>
-          <p class="hint">Already have an account? <button type="button" id="showLogin" class="text-button">Sign in</button></p>
-          <div class="card-wa-divider"></div>
-          <a class="card-wa-link" href="https://wa.me/message/SIRQKFLMGZSHA1" target="_blank" rel="noopener noreferrer">
-            <svg width="16" height="16" viewBox="0 0 32 32" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M16 2C8.268 2 2 8.268 2 16c0 2.478.643 4.81 1.77 6.833L2 30l7.374-1.744A13.93 13.93 0 0 0 16 30c7.732 0 14-6.268 14-14S23.732 2 16 2zm0 2c6.627 0 12 5.373 12 12s-5.373 12-12 12a11.93 11.93 0 0 1-6.07-1.656l-.434-.266-4.374 1.033.997-4.28-.29-.458A11.93 11.93 0 0 1 4 16C4 9.373 9.373 4 16 4zm-2.434 5.5c-.279 0-.73.104-1.113.52-.382.416-1.461 1.428-1.461 3.482 0 2.054 1.496 4.04 1.703 4.322.208.28 2.896 4.573 7.123 6.228 1.006.392 1.793.626 2.406.8.974.279 1.86.24 2.562.145.781-.105 2.408-.984 2.748-1.935.34-.951.34-1.766.238-1.936-.1-.169-.37-.27-.774-.47-.403-.2-2.385-1.178-2.754-1.312-.37-.134-.639-.2-.908.2-.27.4-1.046 1.312-1.282 1.581-.236.269-.472.304-.875.104-.403-.2-1.703-.628-3.245-2.003-1.2-1.07-2.01-2.39-2.245-2.79-.236-.4-.025-.617.177-.816.18-.18.403-.47.605-.706.2-.234.267-.4.4-.668.134-.268.067-.503-.034-.703-.1-.2-.907-2.188-1.242-2.994-.327-.786-.66-.679-.908-.692l-.773-.013z"/></svg>
-            Have questions? Message us on WhatsApp
-          </a>
-          <a class="card-insta-link" href="https://tinywebs.site/EedIBE" target="_blank" rel="noopener noreferrer">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="24" height="24" rx="6" fill="url(#ig-signup)"/><circle cx="12" cy="12" r="4.5" stroke="#fff" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.1" fill="#fff"/><defs><linearGradient id="ig-signup" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#f9ce34"/><stop offset="35%" stop-color="#ee2a7b"/><stop offset="100%" stop-color="#6228d7"/></linearGradient></defs></svg>
-            Watch success stories on Instagram
-          </a>
-        </form>
+          <!-- Left: course pitch -->
+          <div class="lp-hero-text">
+            <p class="lp-eyebrow">Oracle Fusion HCM · Hyderabad, Telangana</p>
+            <h1>Become an Oracle Fusion HCM Professional</h1>
+            <p class="lp-lead">A practical, end-to-end Techno-Functional course — from enterprise setup to payroll, talent, integrations, and job placement support.</p>
+            <div class="lp-badges">
+              <span class="lp-badge">Beginner to Advanced</span>
+              <span class="lp-badge">8 Weeks</span>
+              <span class="lp-badge lp-badge-price">₹30,000 Incl GST</span>
+            </div>
+            <ul class="lp-includes lp-includes-hero">
+              <li><span class="lp-inc-icon">▶</span><span>Recorded video lessons — watch at your own pace</span></li>
+              <li><span class="lp-inc-icon">✦</span><span>AI quiz after every lesson</span></li>
+              <li><span class="lp-inc-icon">💬</span><span>Per-video Q&amp;A forum</span></li>
+              <li><span class="lp-inc-icon">🤖</span><span>AI Oracle HCM assistant — 24/7</span></li>
+              <li><span class="lp-inc-icon">📄</span><span>Resume review &amp; mock interviews</span></li>
+              <li><span class="lp-inc-icon">💼</span><span>Job support after completion</span></li>
+            </ul>
+          </div>
 
-        <!--<form id="forgotPasswordForm" class="login-card hidden">
-          <h2>Forgot password</h2>
-          <p class="hint">Enter your account email and we will email your login password.</p>
-          <label>
-            Email
-            <input name="email" type="email" autocomplete="email" required>
-          </label>
-          <button type="submit" class="primary-button">Email my password</button>
-          <p id="forgotPasswordMessage" class="message" role="status"></p>
-          <p class="hint"><button type="button" id="backToLogin" class="text-button">Back to login</button></p>
-        </form>-->
+          <!-- Right: auth card with tabs -->
+          <div class="lp-auth-col" id="authCol">
+            <div class="auth-card login-card lp-auth-card">
+
+              <!-- Tabs -->
+              <div class="auth-tabs" role="tablist">
+                <button type="button" class="auth-tab auth-tab--active" id="tabSignin" role="tab" aria-selected="true" aria-controls="loginForm">Sign in</button>
+                <button type="button" class="auth-tab" id="tabSignup" role="tab" aria-selected="false" aria-controls="signupForm">Create account</button>
+              </div>
+
+              <!-- Sign in panel -->
+              <form id="loginForm" role="tabpanel">
+                <label>
+                  Email
+                  <input name="email" type="email" autocomplete="email" required
+                    pattern="[^@]+@(gmail\.com|outlook\.com|hotmail\.com|yahoo\.com)"
+                    title="Please use a Gmail, Outlook, Hotmail, or Yahoo email address">
+                </label>
+                <label>
+                  Password
+                  <input name="password" type="password" autocomplete="current-password" required>
+                </label>
+                <label class="show-password-checkbox">
+                  <input type="checkbox" class="show-password-toggle">
+                  <span>Show password</span>
+                </label>
+                <button type="submit">Sign in</button>
+                <p id="loginMessage" class="message" role="status"></p>
+              </form>
+
+              <!-- Create account panel -->
+              <form id="signupForm" class="hidden" role="tabpanel">
+                <label>
+                  Full Name
+                  <input name="name" type="text" autocomplete="name" required minlength="2" title="Name must be at least 2 characters">
+                </label>
+                <label>
+                  Email
+                  <input name="email" type="email" autocomplete="email" required
+                    id="signupEmail"
+                    pattern="[^@]+@(gmail\.com|outlook\.com|hotmail\.com|yahoo\.com)"
+                    title="Please use a Gmail, Outlook, Hotmail, or Yahoo email address">
+                  <span class="email-domain-hint hidden" id="signupEmailHint" aria-live="polite"></span>
+                </label>
+                <label>
+                  Mobile Number
+                  <input name="mobile" type="tel" autocomplete="tel" required pattern="[0-9]{10}" placeholder="10-digit mobile number" title="Please enter a 10-digit mobile number">
+                </label>
+                <label>
+                  Password
+                  <input name="password" type="password" autocomplete="new-password" required minlength="6" title="Password must be at least 6 characters">
+                </label>
+                <label class="show-password-checkbox">
+                  <input type="checkbox" class="show-password-toggle">
+                  <span>Show password</span>
+                </label>
+                <button type="submit">Create Account</button>
+                <p id="signupMessage" class="message" role="status"></p>
+              </form>
+
+              <!-- Shared footer links -->
+              <div class="card-wa-divider"></div>
+              <a class="card-wa-link" href="https://wa.me/message/SIRQKFLMGZSHA1" target="_blank" rel="noopener noreferrer">
+                <svg width="16" height="16" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16 2C8.268 2 2 8.268 2 16c0 2.478.643 4.81 1.77 6.833L2 30l7.374-1.744A13.93 13.93 0 0 0 16 30c7.732 0 14-6.268 14-14S23.732 2 16 2zm0 2c6.627 0 12 5.373 12 12s-5.373 12-12 12a11.93 11.93 0 0 1-6.07-1.656l-.434-.266-4.374 1.033.997-4.28-.29-.458A11.93 11.93 0 0 1 4 16C4 9.373 9.373 4 16 4zm-2.434 5.5c-.279 0-.73.104-1.113.52-.382.416-1.461 1.428-1.461 3.482 0 2.054 1.496 4.04 1.703 4.322.208.28 2.896 4.573 7.123 6.228 1.006.392 1.793.626 2.406.8.974.279 1.86.24 2.562.145.781-.105 2.408-.984 2.748-1.935.34-.951.34-1.766.238-1.936-.1-.169-.37-.27-.774-.47-.403-.2-2.385-1.178-2.754-1.312-.37-.134-.639-.2-.908.2-.27.4-1.046 1.312-1.282 1.581-.236.269-.472.304-.875.104-.403-.2-1.703-.628-3.245-2.003-1.2-1.07-2.01-2.39-2.245-2.79-.236-.4-.025-.617.177-.816.18-.18.403-.47.605-.706.2-.234.267-.4.4-.668.134-.268.067-.503-.034-.703-.1-.2-.907-2.188-1.242-2.994-.327-.786-.66-.679-.908-.692l-.773-.013z"/></svg>
+                Have questions? Message us on WhatsApp
+              </a>
+              <a class="card-insta-link" href="https://tinywebs.site/EedIBE" target="_blank" rel="noopener noreferrer">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect width="24" height="24" rx="6" fill="url(#ig-auth)"/><circle cx="12" cy="12" r="4.5" stroke="#fff" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.1" fill="#fff"/><defs><linearGradient id="ig-auth" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#f9ce34"/><stop offset="35%" stop-color="#ee2a7b"/><stop offset="100%" stop-color="#6228d7"/></linearGradient></defs></svg>
+                Watch success stories on Instagram
+              </a>
+
+            </div>
+          </div><!-- /lp-auth-col -->
+        </div>
+      </div>
+
+      <!-- Who is this for -->
+      <section class="lp-section lp-section-alt">
+        <div class="lp-section-inner">
+          <p class="lp-eyebrow lp-eyebrow-dark">Who is this for?</p>
+          <h2>Built for people ready to move into HCM roles.</h2>
+          <div class="lp-who-grid">
+            <div class="lp-who-card"><span class="lp-who-icon">🎓</span><strong>College students</strong><p>Preparing for campus placements or tech internships in Oracle ERP roles</p></div>
+            <div class="lp-who-card"><span class="lp-who-icon">💼</span><strong>Working professionals</strong><p>Looking to switch careers into Oracle HCM functional or techno-functional positions</p></div>
+            <div class="lp-who-card"><span class="lp-who-icon">🔁</span><strong>Career changers</strong><p>Moving from other domains (SAP, manual HR) into Oracle Fusion HCM consulting</p></div>
+            <div class="lp-who-card"><span class="lp-who-icon">📈</span><strong>HCM professionals</strong><p>Existing Oracle HCM users wanting to deepen technical skills — HDL, HCM Extracts, OTBI, integrations</p></div>
+          </div>
+        </div>
       </section>
 
+      <!-- Curriculum -->
+      <section class="lp-section">
+        <div class="lp-section-inner">
+          <p class="lp-eyebrow lp-eyebrow-dark">Curriculum</p>
+          <h2>What you will learn.</h2>
+          <div class="lp-curriculum">
+            <div class="lp-ch"><span class="lp-ch-num">01</span><div><strong>Introduction &amp; Project Phases</strong><p>Oracle Fusion overview, implementation phases, documentation, Oracle resources</p></div></div>
+            <div class="lp-ch"><span class="lp-ch-num">02</span><div><strong>Core HR</strong><p>Enterprise structures, legal entities, BU, departments, lookups, grades, jobs, positions, person management, HDL, HCM Extracts</p></div></div>
+            <div class="lp-ch"><span class="lp-ch-num">03</span><div><strong>Payroll</strong><p>Elements, costing, payroll runs, calculation cards, balance dimensions, India localisation — TDS, PF, ESI, PT</p></div></div>
+            <div class="lp-ch"><span class="lp-ch-num">04</span><div><strong>Absence Management</strong><p>Absence types, plans, accruals, payroll integration</p></div></div>
+            <div class="lp-ch"><span class="lp-ch-num">05</span><div><strong>Talent Management</strong><p>Goals, performance, talent review, succession planning, learning</p></div></div>
+            <div class="lp-ch"><span class="lp-ch-num">06</span><div><strong>Time &amp; Labor</strong><p>Time cards, work schedules, overtime processing</p></div></div>
+            <div class="lp-ch"><span class="lp-ch-num">07</span><div><strong>Recruiting (ORC)</strong><p>Requisitions, offers, candidate experience</p></div></div>
+            <div class="lp-ch"><span class="lp-ch-num">08</span><div><strong>Security &amp; Integrations</strong><p>Roles, duty roles, HCM security profiles, REST/SOAP APIs, OIC, Page Composer, DFF/EFF, ESS, OTBI/BIP</p></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pricing + outcomes -->
+      <section class="lp-section lp-section-alt">
+        <div class="lp-section-inner lp-outcomes-wrap">
+          <div>
+            <p class="lp-eyebrow lp-eyebrow-dark">Learning outcomes</p>
+            <h2>Leave with more than just notes.</h2>
+            <ul class="lp-outcomes">
+              <li>End-to-end Oracle Fusion HCM knowledge — functional and technical</li>
+              <li>Hands-on configuration across all HCM modules</li>
+              <li>India payroll localisation (TDS, PF, ESI, PT)</li>
+              <li>Integration skills — HDL, HCM Extracts, OTBI, REST APIs, OIC</li>
+              <li>Resume that reflects what you can actually do</li>
+              <li>Interview preparation with real HCM scenarios</li>
+              <li>Post-course job support until you are placed</li>
+            </ul>
+          </div>
+          <div class="lp-price-card">
+            <p class="lp-price-eyebrow">Course fee</p>
+            <p class="lp-price-amount">₹30,000</p>
+            <p class="lp-price-note">Inclusive of GST</p>
+            <div class="lp-price-divider"></div>
+            <ul class="lp-price-features">
+              <li>✓ Lifetime access to recorded videos</li>
+              <li>✓ AI quiz after every lesson</li>
+              <li>✓ Per-video Q&amp;A forum</li>
+              <li>✓ AI Oracle HCM assistant (24/7)</li>
+              <li>✓ Resume review &amp; mock interviews</li>
+              <li>✓ Job support</li>
+              <li>✓ 1:1 mentoring</li>
+            </ul>
+            <button type="button" class="lp-price-cta" id="pricingEnrollBtn">Enroll Now &rarr;</button>
+            <p class="lp-price-wa">Questions? <a href="https://wa.me/message/SIRQKFLMGZSHA1" target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="lp-footer">
+        <div class="lp-footer-inner">
+          <span>&copy; 2026 Up 'N' Rise Learning Academy · Hyderabad, Telangana</span>
+          <div class="lp-footer-links">
+            <a href="mailto:upnriseacademy@gmail.com">upnriseacademy@gmail.com</a>
+            <a href="https://wa.me/message/SIRQKFLMGZSHA1" target="_blank" rel="noopener noreferrer">+91 78931 46211</a>
+          </div>
+        </div>
+      </footer>
+
+    </section><!-- /#loginView -->
+
+    <main class="shell">
       <section id="appView" class="app-view hidden">
         <header class="topbar">
           <div>

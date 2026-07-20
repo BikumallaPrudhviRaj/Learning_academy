@@ -161,14 +161,59 @@ const loginForm   = qs("#loginForm");
 const signupForm  = qs("#signupForm");
 const loginMsg    = qs("#loginMessage");
 const signupMsg   = qs("#signupMessage");
+const tabSignin   = qs("#tabSignin");
+const tabSignup   = qs("#tabSignup");
 
-qs("#showSignup").addEventListener("click", () => {
-  hide(loginForm);
-  show(signupForm);
-});
-qs("#showLogin").addEventListener("click", () => {
-  hide(signupForm);
-  show(loginForm);
+function switchTab(showLogin) {
+  if (showLogin) {
+    show(loginForm);  hide(signupForm);
+    tabSignin.classList.add("auth-tab--active");    tabSignin.setAttribute("aria-selected","true");
+    tabSignup.classList.remove("auth-tab--active"); tabSignup.setAttribute("aria-selected","false");
+  } else {
+    hide(loginForm);  show(signupForm);
+    tabSignup.classList.add("auth-tab--active");    tabSignup.setAttribute("aria-selected","true");
+    tabSignin.classList.remove("auth-tab--active"); tabSignin.setAttribute("aria-selected","false");
+  }
+}
+
+tabSignin.addEventListener("click", () => switchTab(true));
+tabSignup.addEventListener("click", () => switchTab(false));
+
+// Real-time email domain check on signup form
+const ALLOWED_DOMAINS = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com"];
+const signupEmailInput = qs("#signupEmail");
+const signupEmailHint  = qs("#signupEmailHint");
+
+signupEmailInput.addEventListener("input", () => {
+  const val    = signupEmailInput.value;
+  const atIdx  = val.indexOf("@");
+
+  if (atIdx === -1 || val.slice(atIdx + 1) === "") {
+    // Nothing after @ yet — hide hint
+    signupEmailHint.textContent = "";
+    signupEmailHint.className = "email-domain-hint hidden";
+    signupEmailInput.setCustomValidity("");
+    return;
+  }
+
+  const domain = val.slice(atIdx + 1).toLowerCase();
+  const ok = ALLOWED_DOMAINS.includes(domain);
+  // Also allow partial matches while user is still typing (e.g. "gmail.c")
+  const partial = !ok && ALLOWED_DOMAINS.some(d => d.startsWith(domain));
+
+  if (ok) {
+    signupEmailHint.textContent = "✓ Accepted";
+    signupEmailHint.className = "email-domain-hint hint-ok";
+    signupEmailInput.setCustomValidity("");
+  } else if (partial) {
+    signupEmailHint.textContent = "";
+    signupEmailHint.className = "email-domain-hint hidden";
+    signupEmailInput.setCustomValidity("");
+  } else {
+    signupEmailHint.textContent = `@${domain} is not accepted. Use Gmail, Outlook, Hotmail, or Yahoo.`;
+    signupEmailHint.className = "email-domain-hint hint-error";
+    signupEmailInput.setCustomValidity("Use a Gmail, Outlook, Hotmail, or Yahoo email address.");
+  }
 });
 
 // Show password toggles
@@ -248,21 +293,7 @@ document.addEventListener("click", (e) => {
 
 qs("#logoutButton").addEventListener("click", async () => {
   await api("POST", "/api/logout");
-  currentUser = null;
-  allCourses = [];
-  hide(appView);
-  show(loginView);
-  loginForm.reset();
-  signupForm.reset();
-  hide(signupForm);
-  show(loginForm);
-  loginMsg.textContent = "";
-  qs("#courseGrid").innerHTML = "";
-  qs("#testimonialGrid").innerHTML = "";
-  qs("#courseDetailView").innerHTML = "";
-  hide(qs("#courseDetailView"));
-  show(qs("#catalogView"));
-  chatHistory = [];
+  window.location.href = "/";
 });
 
 // ── Profile modal ─────────────────────────────────────────
@@ -2764,6 +2795,19 @@ async function deleteQaPost(courseId, videoId, questionId) {
     renderQaList();
   });
 }
+
+// ── Landing page: scroll-to-form buttons ─────────────────
+function scrollToAuthForm() {
+  const authCol = document.getElementById("authCol");
+  if (authCol) authCol.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+const navEnrollBtn = document.getElementById("navEnrollBtn");
+if (navEnrollBtn) navEnrollBtn.addEventListener("click", scrollToAuthForm);
+const pricingEnrollBtn = document.getElementById("pricingEnrollBtn");
+if (pricingEnrollBtn) pricingEnrollBtn.addEventListener("click", () => {
+  switchTab(true);
+  scrollToAuthForm();
+});
 
 // ── Boot: check session ───────────────────────────────────
 (async () => {
